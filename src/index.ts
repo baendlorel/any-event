@@ -17,14 +17,14 @@ class EventBus {
   private getConfigs(eventName: EventName): Set<EventConfig>[] {
     const matchedConfigs: Set<EventConfig>[] = [];
     for (const en of this.eventMap.keys()) {
-      // eventName is checked during the registration, here we only consider names end with '.*' or includes '.*.'
       // 在注册时保证不会出现特殊情况
+      // eventName is checked during the registration, here we only consider names end with '.*' or includes '.*.'
       if (en.includes('.*')) {
         const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
         const reg = new RegExp(t, 'g');
         if (eventName.match(reg)) {
-          // for of .keys() garuantees its existance
           // 这是key值提取的，一定存在
+          // for of .keys() garuantees its existance
           const c = this.eventMap.get(en)!;
           matchedConfigs.push(c);
         }
@@ -48,8 +48,8 @@ class EventBus {
       this.eventMap.set(eventName, configs);
     }
 
-    // See if the same name-handler tuple is already existed, log warning message if so.
     // 判断要绑定的函数是否已经在这个事件下存在，存在就warn
+    // See if the same name-handler tuple is already existed, log warning message if so.
     let existConfig: EventConfig | undefined = undefined;
 
     for (const c of configs.values()) {
@@ -80,6 +80,13 @@ class EventBus {
     this.register(eventName, handler, 1);
   }
 
+  /**
+   * 需要注意，此处的eventName必须精确，和注册时的一样，不会进行通配。例如'evt.*'，这时候必须还使用'evt.*'才能注销它，用'evt.a'是不行的
+   * Note that we must use the precise eventName as it was registered. Like we registered 'evt.*', and use 'evt.a' will not turn it off.
+   * @param eventName
+   * @param handler
+   * @returns
+   */
   public off(eventName: EventName, handler?: EventHandler) {
     if (handler) {
       const configs = this.getExactConfigs(eventName);
@@ -87,13 +94,18 @@ class EventBus {
         return;
       }
 
-      // The register function has garuanteed that there will be no duplicated name-handler tuple.
       // 在注册事件时此处已经保证了不会有重复的name-handler
-      configs.forEach((c, v, s) => {
+      // The register function has garuanteed that there will be no duplicated name-handler tuple.
+      for (const c of configs.values()) {
         if (c.handler === handler) {
-          s.delete(c);
+          configs.delete(c);
+          break;
         }
-      });
+      }
+
+      if (configs.size === 0) {
+        this.eventMap.delete(eventName);
+      }
     } else {
       this.eventMap.delete(eventName);
     }
