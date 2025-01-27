@@ -4,7 +4,7 @@ type EventName = string;
 
 type EventConfig = {
   handler: EventHandler;
-  capacity: number | null;
+  capacity: number | undefined;
 };
 
 class EventBus {
@@ -23,7 +23,7 @@ class EventBus {
     return this.eventMap.get(eventName);
   }
 
-  private register(eventName: EventName, handler: EventHandler, capacity: number | null = null) {
+  private register(eventName: EventName, handler: EventHandler, capacity?: number) {
     let configs: Set<EventConfig> | undefined = this.eventMap.get(eventName);
 
     if (configs === undefined) {
@@ -32,7 +32,7 @@ class EventBus {
     }
 
     // 判断要绑定的函数是否已经在这个事件下存在，存在就warn
-    let existConfig: EventConfig | null = null;
+    let existConfig: EventConfig | undefined = undefined;
 
     for (const c of configs.values()) {
       if (c.handler === handler) {
@@ -41,7 +41,7 @@ class EventBus {
       }
     }
 
-    if (existConfig !== null) {
+    if (existConfig !== undefined) {
       console.warn(
         `[TS-Event-Hub] This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
       );
@@ -54,7 +54,7 @@ class EventBus {
     }
   }
 
-  public on(eventName: EventName, handler: EventHandler, capacity: number | null = null) {
+  public on(eventName: EventName, handler: EventHandler, capacity?: number) {
     this.register(eventName, handler, capacity);
   }
 
@@ -65,8 +65,7 @@ class EventBus {
   public off(eventName: EventName, handler?: EventHandler) {
     if (handler) {
       const configs = this.getExactConfigs(eventName);
-
-      if (!configs) {
+      if (configs === undefined) {
         return;
       }
 
@@ -83,9 +82,9 @@ class EventBus {
   }
 
   public emitWithThisArg(eventName: EventName, thisArg: any, ...args: any) {
-    let configs: Set<EventConfig> | undefined = this.getConfigs(eventName);
+    const configs: Set<EventConfig> | undefined = this.getConfigs(eventName);
 
-    if (!configs) {
+    if (configs === undefined) {
       return;
     }
 
@@ -93,11 +92,9 @@ class EventBus {
       ? (config: EventConfig) => config.handler.call(thisArg, ...args)
       : (config: EventConfig) => config.handler(...args);
 
-    const toDelete: Set<number> = new Set();
-
     configs.forEach((c, v, s) => {
       call(c);
-      if (c.capacity !== null) {
+      if (c.capacity !== undefined) {
         c.capacity--;
         if (c.capacity <= 0) {
           s.delete(c);
@@ -107,6 +104,7 @@ class EventBus {
   }
 
   public logEventMaps() {
+    console.log(`[TS-Event-Hub] All events lies below`);
     console.log(this.eventMap);
   }
 }
