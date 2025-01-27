@@ -62,7 +62,7 @@ class EventBus {
 
     if (existConfig !== undefined) {
       console.warn(
-        `[TS-Event-Hub] This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
+        `[TS-Event-Hub]这个事件名下已经有同一个函数了，将只更新执行次数而不重复注册。 This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
       );
       existConfig.capacity = capacity;
     } else {
@@ -123,6 +123,13 @@ class EventBus {
       : (config: EventConfig) => config.handler(...args);
 
     const configSets: Set<EventConfig>[] = this.getConfigs(eventName);
+
+    if (configSets.length === 0) {
+      console.warn(
+        `[TS-Event-Hub] 事件名'${eventName}'没有匹配的事件集合。Event '${eventName}' has no matched config sets.`
+      );
+    }
+
     for (const configs of configSets) {
       configs.forEach((c, v, s) => {
         call(c);
@@ -143,7 +150,7 @@ class EventBus {
   }
 
   public logEventMaps() {
-    console.log(`[TS-Event-Hub] All events lies below`, this.eventMap);
+    console.log(`[TS-Event-Hub] 所有事件映射展示如下。All events lies below \n`, this.eventMap);
   }
 }
 
