@@ -3,6 +3,7 @@ type EventHandler = (...args: any[]) => void;
 type EventName = string;
 
 type EventConfig = {
+  name: EventName;
   handler: EventHandler;
   capacity: number | undefined;
 };
@@ -66,6 +67,7 @@ class EventBus {
       existConfig.capacity = capacity;
     } else {
       configs.add({
+        name: eventName,
         handler,
         capacity,
       });
@@ -129,6 +131,12 @@ class EventBus {
           if (c.capacity <= 0) {
             s.delete(c);
           }
+        }
+
+        // 如果删除事件后handler数量为0，则删除该事件
+        // if this event has no handler after deletion, delete it.
+        if (s.size === 0) {
+          this.eventMap.delete(c.name);
         }
       });
     }
