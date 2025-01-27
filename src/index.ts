@@ -28,6 +28,9 @@ class EventBus {
           const c = this.eventMap.get(en)!;
           matchedConfigs.push(c);
         }
+      } else if (en === eventName) {
+        const c = this.eventMap.get(en)!;
+        matchedConfigs.push(c);
       }
     }
     return matchedConfigs;
@@ -106,7 +109,6 @@ class EventBus {
       : (config: EventConfig) => config.handler(...args);
 
     const configSets: Set<EventConfig>[] = this.getConfigs(eventName);
-
     for (const configs of configSets) {
       configs.forEach((c, v, s) => {
         call(c);
@@ -121,8 +123,7 @@ class EventBus {
   }
 
   public logEventMaps() {
-    console.log(`[TS-Event-Hub] All events lies below`);
-    console.log(this.eventMap);
+    console.log(`[TS-Event-Hub] All events lies below`, this.eventMap);
   }
 }
 
