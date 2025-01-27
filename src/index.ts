@@ -14,12 +14,26 @@ class EventBus {
     this.eventMap = new Map();
   }
 
-  private getConfigs(eventName: EventName) {
-    // TODO 添加通配符支持
-    return this.eventMap.get(eventName);
+  private getConfigs(eventName: EventName): Set<EventConfig>[] {
+    const matchedConfigs: Set<EventConfig>[] = [];
+    for (const en of this.eventMap.keys()) {
+      // eventName is checked during the registration, here we only consider names end with '.*' or includes '.*.'
+      // 在注册时保证不会出现特殊情况
+      if (en.includes('.*')) {
+        const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
+        const reg = new RegExp(t, 'g');
+        if (eventName.match(reg)) {
+          // for of .keys() garuantees its existance
+          // 这是key值提取的，一定存在
+          const c = this.eventMap.get(en)!;
+          matchedConfigs.push(c);
+        }
+      }
+    }
+    return matchedConfigs;
   }
 
-  private getExactConfigs(eventName: EventName) {
+  private getExactConfigs(eventName: EventName): Set<EventConfig> | undefined {
     return this.eventMap.get(eventName);
   }
 
@@ -31,6 +45,7 @@ class EventBus {
       this.eventMap.set(eventName, configs);
     }
 
+    // See if the same name-handler tuple is already existed, log warning message if so.
     // 判断要绑定的函数是否已经在这个事件下存在，存在就warn
     let existConfig: EventConfig | undefined = undefined;
 
@@ -69,7 +84,7 @@ class EventBus {
         return;
       }
 
-      // The register function has garuanteed that there will be no duplicated name-handler
+      // The register function has garuanteed that there will be no duplicated name-handler tuple.
       // 在注册事件时此处已经保证了不会有重复的name-handler
       configs.forEach((c, v, s) => {
         if (c.handler === handler) {
@@ -81,26 +96,28 @@ class EventBus {
     }
   }
 
+  public emit(eventName: EventName, ...args: any) {
+    this.emitWithThisArg(eventName, undefined, ...args);
+  }
+
   public emitWithThisArg(eventName: EventName, thisArg: any, ...args: any) {
-    const configs: Set<EventConfig> | undefined = this.getConfigs(eventName);
-
-    if (configs === undefined) {
-      return;
-    }
-
     const call = thisArg
       ? (config: EventConfig) => config.handler.call(thisArg, ...args)
       : (config: EventConfig) => config.handler(...args);
 
-    configs.forEach((c, v, s) => {
-      call(c);
-      if (c.capacity !== undefined) {
-        c.capacity--;
-        if (c.capacity <= 0) {
-          s.delete(c);
+    const configSets: Set<EventConfig>[] = this.getConfigs(eventName);
+
+    for (const configs of configSets) {
+      configs.forEach((c, v, s) => {
+        call(c);
+        if (c.capacity !== undefined) {
+          c.capacity--;
+          if (c.capacity <= 0) {
+            s.delete(c);
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   public logEventMaps() {
@@ -108,3 +125,5 @@ class EventBus {
     console.log(this.eventMap);
   }
 }
+
+export { EventBus };
