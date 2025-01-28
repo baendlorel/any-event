@@ -27,8 +27,8 @@ bus.on(eventName: string, handler: Function, capacity?: number);
 // Register an event that can only be triggered once.
 bus.once(eventName: string, handler: Function);
 
-// 触发事件，可加参数
-// Trigger the event. Arguments can be provided
+// 触发事件，可加参数。事件名称不能含有*
+// Trigger the event. Arguments can be provided. EventName must not include *
 bus.emit(eventName: string, ...args:any);
 
 // 注销事件和其对应的所有handler，如果指定handler则只注销次事件下的特定handler
@@ -74,18 +74,20 @@ bus.emit('evt', '参数1', '参数2');
 
 ```typescript
 let count = 0;
-bus.on(
-  'evt',
-  () => {
+bus.on('evt',() => {
     count++;
     console.log('count', count);
-  },
-  3
-);
+},3);
+
 bus.emit('evt');
 bus.emit('evt');
 bus.emit('evt');
-bus.emit('evt'); // 不会触发 Won't trigger this event any more
+// 3次调用后事件自动注销
+// After 3 calls, the handler is unregistered automatically.
+
+// 再调用已经不再会触发
+// This handler will not be triggered anymore.
+bus.emit('evt'); 
 
 /* output:
 count 1
@@ -119,12 +121,11 @@ bus.emitWithThisArg('evt', { a: 3 }, { b: 2 });
 
 支持使用通配符 `*`来注册事件，需要使用 `a.*`或者 `a.*.a`这样的格式来指定事件名称。其中 `*`可以匹配任何除了它自己以外的字符
 
-Support wildcards. We can use a._ or a._.a to register events. The _ part can be matched by anything but _ itself.
+Support wildcards. We can use `a.*` or `a.*.a` to register events. The `*` part can be matched by anything but `*` itself.
 
 ```typescript
 bus.on('evt.*', () => {});
 
-bus.emit('evt.*'); // 会触发 Will be triggered
 bus.emit('evt.3'); // 会触发 Will be triggered
 bus.emit('evt.name'); // 会触发 Will be triggered
 bus.emit('evt.'); // 不会触发 This will not trigger the event
