@@ -50,14 +50,7 @@ describe('EventBus class', () => {
     ).resolves.toBeCalledTimes(2);
   });
 
-  const test4EventNames = [
-    'evt4.ad.fr3w',
-    'evt4.*.*',
-    'evt4.321.*',
-    'evt4.**.**',
-    'evt4.*.**',
-    'evt4.*.4fwe',
-  ];
+  const test4EventNames = ['evt4.ad.fr3w', 'evt4.321.wew.sdf'];
   test(`通配符事件evt4.*.*，${test4EventNames.join()}用来触发，应该触发6次`, () => {
     return expect(
       new Promise((resolve) => {
@@ -70,7 +63,7 @@ describe('EventBus class', () => {
           resolve(callback);
         }, 200);
       })
-    ).resolves.toBeCalledTimes(6);
+    ).resolves.toBeCalledTimes(1);
   });
 
   test(`注册事件evt5并携带2个参数触发`, () => {
@@ -113,10 +106,10 @@ describe('EventBus class', () => {
     return expect(
       Promise.all([
         new Promise((resolve) => {
-          bus.on('evt7', function () {
-            resolve((this as any).c);
+          bus.on('evt7', function (arg) {
+            resolve((this as any).c + arg.d);
           });
-          bus.emitWithThisArg('evt7', obj);
+          bus.emitWithThisArg('evt7', obj, { d: 5 });
         }),
         new Promise((resolve) => {
           bus.on('evt7-arrowfunc', () => {
@@ -125,7 +118,7 @@ describe('EventBus class', () => {
           bus.emitWithThisArg('evt7-arrowfunc', obj);
         }),
       ])
-    ).resolves.toEqual([3, 'this is undefined']);
+    ).resolves.toEqual([8, 'this is undefined']);
   });
 
   test(`注册事件evt8.*.*和evt8.a.*，并同时触发两者`, () => {
@@ -134,13 +127,13 @@ describe('EventBus class', () => {
         const callback = jest.fn();
         bus.on('evt8.*.*', callback);
         bus.on('evt8.a.*', callback);
-        bus.emit('evt8.a.2');
-        bus.emit('evt8.a.*');
+        bus.emit('evt8.b.2');
+        bus.emit('evt8.a.fsd');
         setTimeout(() => {
           resolve(callback);
         }, 200);
       })
-    ).resolves.toBeCalledTimes(4);
+    ).resolves.toBeCalledTimes(3);
   });
 
   test(`注册事件evt9，重复添加handler，执行次数从undefined被更新为6次`, () => {
@@ -157,5 +150,21 @@ describe('EventBus class', () => {
         resolve({ size, capacity1, capacity2 });
       })
     ).resolves.toEqual({ size: 1, capacity1: undefined, capacity2: 6 });
+  });
+
+  const test10EventNames = ['evt10.a.2', 'evt10.a', 'evt10.'];
+  test(`注册事件evt10.*，并用${test10EventNames.join()}触发`, () => {
+    return expect(
+      new Promise((resolve) => {
+        const callback = jest.fn();
+        bus.on('evt10.*', callback);
+        test10EventNames.forEach((en) => {
+          bus.emit(en);
+        });
+        setTimeout(() => {
+          resolve(callback);
+        }, 200);
+      })
+    ).resolves.toBeCalledTimes(2);
   });
 });
