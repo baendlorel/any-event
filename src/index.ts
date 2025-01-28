@@ -6,19 +6,49 @@ type EventConfig = {
   name: EventName;
   handler: EventHandler;
   capacity: number | undefined;
+  isArrowFunctionHandler: boolean;
 };
 
 export class EventBus {
-  private readonly logger: { showLog: boolean; warn: Function; log: Function; error: Function };
+  private readonly logger: {
+    showLog: boolean;
+    warn: Function;
+    log: Function;
+    error: Function;
+    throw: Function;
+  };
   private readonly eventMap: Map<EventName, Set<EventConfig>>;
   constructor() {
+    const header = '[TS-Event-Hub]';
     this.logger = {
       showLog: true,
-      log: (...args: any) => this.logger.showLog && console.log('[TS-Event-Hub]', ...args),
-      warn: (...args: any) => this.logger.showLog && console.warn('[TS-Event-Hub]', ...args),
-      error: (...args: any) => this.logger.showLog && console.error('[TS-Event-Hub]', ...args),
+      log: (...args: any) => this.logger.showLog && console.log(header, ...args),
+      warn: (...args: any) => this.logger.showLog && console.warn(header, ...args),
+      error: (...args: any) => this.logger.showLog && console.error(header, ...args),
+      throw: (message: string) => {
+        throw new Error(`${header} ${message}`);
+      },
     };
     this.eventMap = new Map();
+  }
+
+  private isArrowFunction(f: any) {
+    if (typeof f !== 'function') {
+      this.logger.error(
+        '给的参数不是函数，无法判断是否为箭头函数。The parameter provided is not a function, cannot tell it is whether an arrow function'
+      );
+    }
+    try {
+      const fp = new Proxy(f, {
+        construct(target, args) {
+          return {};
+        },
+      });
+      new fp();
+      return false;
+    } catch (error) {
+      return true;
+    }
   }
 
   private getConfigs(eventName: EventName): Set<EventConfig>[] {
@@ -48,6 +78,18 @@ export class EventBus {
   }
 
   private register(eventName: EventName, handler: EventHandler, capacity?: number) {
+    // 参数检测
+    // paramter check
+    if (typeof eventName !== 'string') {
+      throw new Error('eventName必须是string。eventName must be a string');
+    }
+    if (typeof handler !== 'function') {
+      throw new Error('handler必须是function。handler must be a function');
+    }
+    if (typeof capacity !== 'number' && typeof capacity !== 'undefined') {
+      throw new Error('capacity必须是number或undefined。capacity must be a number or undefined');
+    }
+
     let configs: Set<EventConfig> | undefined = this.eventMap.get(eventName);
 
     if (configs === undefined) {
@@ -76,6 +118,7 @@ export class EventBus {
         name: eventName,
         handler,
         capacity,
+        isArrowFunctionHandler: this.isArrowFunction(handler),
       });
     }
   }
@@ -89,13 +132,22 @@ export class EventBus {
   }
 
   /**
-   * 需要注意，此处的eventName必须精确，和注册时的一样，不会进行通配。例如'evt.*'，这时候必须还使用'evt.*'才能注销它，用'evt.a'是不行的
+   * 需要注意，此处的eventName必须精确，和注册时的一样，不会进行通配。例如注册了'evt.*'的话，必须还使用'evt.*'才能注销它，用'evt.a'是不行的
    * Note that we must use the precise eventName as it was registered. Like we registered 'evt.*', and use 'evt.a' will not turn it off.
    * @param eventName
    * @param handler
    * @returns
    */
   public off(eventName: EventName, handler?: EventHandler) {
+    // 参数检测
+    // paramter check
+    if (typeof eventName !== 'string') {
+      throw new Error('eventName必须是string。eventName must be a string');
+    }
+    if (typeof handler !== 'function' && typeof handler !== 'undefined') {
+      throw new Error('handler必须是function或undefined。handler must be a function or undefined');
+    }
+
     const configs = this.getExactConfigs(eventName);
     if (configs === undefined) {
       this.logger.warn(
@@ -124,13 +176,40 @@ export class EventBus {
     }
   }
 
+  public clear() {
+    this.logger.log(
+      `清空所有事件，共${this.eventMap.size}个。Clear all ${this.eventMap.size} events`
+    );
+    this.eventMap.clear();
+  }
+
   public emit(eventName: EventName, ...args: any) {
     this.emitWithThisArg(eventName, undefined, ...args);
   }
 
+  /**
+   * 如果真的要改变this指向，那么不要使用箭头函数
+   * If you want to change thisArg, then do not use arrow functions.
+   * @param eventName
+   * @param thisArg
+   * @param args
+   */
   public emitWithThisArg(eventName: EventName, thisArg: any, ...args: any) {
+    // 参数检测
+    // paramter check
+    if (typeof eventName !== 'string') {
+      throw new Error('eventName必须是string。eventName must be a string');
+    }
+
     const call = thisArg
-      ? (config: EventConfig) => config.handler.call(thisArg, ...args)
+      ? (config: EventConfig) => {
+          if (config.isArrowFunctionHandler) {
+            this.logger.warn(
+              '使用箭头函数时指定thisArgs可能无法达到预期效果！Appoint thisArg while using arrow function might not meet your expectaions!'
+            );
+          }
+          config.handler.call(thisArg, ...args);
+        }
       : (config: EventConfig) => config.handler(...args);
 
     const configSets: Set<EventConfig>[] = this.getConfigs(eventName);
@@ -143,6 +222,10 @@ export class EventBus {
 
     for (const configs of configSets) {
       configs.forEach((c, v, s) => {
+        this.logger.log(
+          `以${eventName}触发了${c.name}。${eventName} triggered ${c.name}.`,
+          ...args
+        );
         call(c);
         if (c.capacity !== undefined) {
           c.capacity--;
@@ -170,13 +253,13 @@ export class EventBus {
 
   public logEventMaps(forced?: boolean) {
     if (forced) {
-      console.log(`所有事件映射展示如下。All events lies below \n`, this.eventMap);
-    } else {
-      this.logger.log(
+      console.log(
         '[TS-Event-Hub]',
         `所有事件映射展示如下。All events lies below \n`,
         this.eventMap
       );
+    } else {
+      this.logger.log(`所有事件映射展示如下。All events lies below \n`, this.eventMap);
     }
   }
 }
