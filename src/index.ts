@@ -8,10 +8,16 @@ type EventConfig = {
   capacity: number | undefined;
 };
 
-class EventBus {
+export class EventBus {
+  private readonly logger: { showLog: boolean; warn: Function; log: Function; error: Function };
   private readonly eventMap: Map<EventName, Set<EventConfig>>;
-
   constructor() {
+    this.logger = {
+      showLog: true,
+      log: (...args: any) => this.logger.showLog && console.log('[TS-Event-Hub]', ...args),
+      warn: (...args: any) => this.logger.showLog && console.warn('[TS-Event-Hub]', ...args),
+      error: (...args: any) => this.logger.showLog && console.error('[TS-Event-Hub]', ...args),
+    };
     this.eventMap = new Map();
   }
 
@@ -61,8 +67,8 @@ class EventBus {
     }
 
     if (existConfig !== undefined) {
-      console.warn(
-        `[TS-Event-Hub]这个事件名下已经有同一个函数了，将只更新执行次数而不重复注册。 This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
+      this.logger.warn(
+        `这个事件名下已经有同一个函数了，将只更新执行次数而不重复注册。 This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
       );
       existConfig.capacity = capacity;
     } else {
@@ -90,12 +96,15 @@ class EventBus {
    * @returns
    */
   public off(eventName: EventName, handler?: EventHandler) {
-    if (handler) {
-      const configs = this.getExactConfigs(eventName);
-      if (configs === undefined) {
-        return;
-      }
+    const configs = this.getExactConfigs(eventName);
+    if (configs === undefined) {
+      this.logger.warn(
+        `事件名'${eventName}'没有匹配的事件集合。Event '${eventName}' has no matched config sets.`
+      );
+      return;
+    }
 
+    if (handler) {
       // 在注册事件时此处已经保证了不会有重复的name-handler
       // The register function has garuanteed that there will be no duplicated name-handler tuple.
       for (const c of configs.values()) {
@@ -105,6 +114,8 @@ class EventBus {
         }
       }
 
+      // 如果删除事件后handler数量为0，则删除该事件
+      // if this event has no handler after deletion, delete it.
       if (configs.size === 0) {
         this.eventMap.delete(eventName);
       }
@@ -125,8 +136,8 @@ class EventBus {
     const configSets: Set<EventConfig>[] = this.getConfigs(eventName);
 
     if (configSets.length === 0) {
-      console.warn(
-        `[TS-Event-Hub] 事件名'${eventName}'没有匹配的事件集合。Event '${eventName}' has no matched config sets.`
+      this.logger.warn(
+        `事件名'${eventName}'没有匹配的事件集合。Event '${eventName}' has no matched config sets.`
       );
     }
 
@@ -149,9 +160,23 @@ class EventBus {
     }
   }
 
-  public logEventMaps() {
-    console.log(`[TS-Event-Hub] 所有事件映射展示如下。All events lies below \n`, this.eventMap);
+  public startLogging() {
+    this.logger.showLog = true;
+  }
+
+  public stopLogging() {
+    this.logger.showLog = false;
+  }
+
+  public logEventMaps(forced?: boolean) {
+    if (forced) {
+      console.log(`所有事件映射展示如下。All events lies below \n`, this.eventMap);
+    } else {
+      this.logger.log(
+        '[TS-Event-Hub]',
+        `所有事件映射展示如下。All events lies below \n`,
+        this.eventMap
+      );
+    }
   }
 }
-
-export { EventBus };
