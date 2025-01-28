@@ -34,10 +34,15 @@ export class EventBus {
 
   private isArrowFunction(f: any) {
     if (typeof f !== 'function') {
-      this.logger.error(
+      this.logger.throw(
         '给的参数不是函数，无法判断是否为箭头函数。The parameter provided is not a function, cannot tell it is whether an arrow function'
       );
     }
+
+    // 经过研究，使用new操作符是最为确定的判断方法，箭头函数无法new
+    // 此处用proxy拦截构造函数，防止普通函数真的运行
+    // After some research, using new operator to distinct arrow functions from normal functions is the best approach.
+    // We use proxy here to avoid truely running the normal function(while arrow function cannot be newed)
     try {
       const fp = new Proxy(f, {
         construct(target, args) {
@@ -201,6 +206,14 @@ export class EventBus {
       throw new Error('eventName必须是string。eventName must be a string');
     }
 
+    // 触发用的事件名称不能带星号
+    // eventName cannot include *.
+    if (eventName.includes('*')) {
+      throw new Error(
+        '触发用的eventName不能包含*。eventName used in emit function cannot include *'
+      );
+    }
+
     const call = thisArg
       ? (config: EventConfig) => {
           if (config.isArrowFunctionHandler) {
@@ -243,11 +256,11 @@ export class EventBus {
     }
   }
 
-  public startLogging() {
+  public turnOnLog() {
     this.logger.showLog = true;
   }
 
-  public stopLogging() {
+  public turnOffLog() {
     this.logger.showLog = false;
   }
 
