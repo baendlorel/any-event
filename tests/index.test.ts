@@ -20,7 +20,6 @@ describe('EventBus class', () => {
         bus.on('evt1', () => {
           resolve(true);
         });
-        bus.logEventMaps();
         bus.emit('evt1');
       })
     ).resolves.toBe(true);
@@ -31,11 +30,9 @@ describe('EventBus class', () => {
       new Promise((resolve) => {
         const callback = jest.fn();
         bus.once('evt2', callback);
-        bus.logEventMaps();
         bus.emit('evt2');
         setTimeout(() => {
           resolve(callback);
-          bus.logEventMaps();
         }, 100);
       })
     ).resolves.toBeCalledTimes(1);
@@ -46,13 +43,11 @@ describe('EventBus class', () => {
       new Promise((resolve) => {
         const callback = jest.fn();
         bus.on('evt3', callback, 2);
-        bus.logEventMaps();
         bus.emit('evt3');
         bus.emit('evt3');
         bus.emit('evt3');
         setTimeout(() => {
           resolve(callback);
-          bus.logEventMaps();
         }, 100);
       })
     ).resolves.toBeCalledTimes(2);
@@ -71,13 +66,11 @@ describe('EventBus class', () => {
       new Promise((resolve) => {
         const callback = jest.fn();
         bus.on('evt4.*.*', callback);
-        bus.logEventMaps();
         test4EventNames.forEach((en) => {
           bus.emit(en);
         });
         setTimeout(() => {
           resolve(callback);
-          bus.logEventMaps();
         }, 100);
       })
     ).resolves.toBeCalledTimes(6);
@@ -89,9 +82,44 @@ describe('EventBus class', () => {
         bus.on('evt5', (arg1, arg2) => {
           resolve({ arg1, arg2 });
         });
-        bus.logEventMaps();
         bus.emit('evt5', 'a1', 'a2');
       })
     ).resolves.toEqual({ arg1: 'a1', arg2: 'a2' });
+  });
+
+  test(`注册事件evt6并携带1个参数不带thisArg触发`, () => {
+    return expect(
+      new Promise((resolve) => {
+        bus.on('evt6', (args) => {
+          resolve(args.c);
+        });
+        const obj = {
+          a: 1,
+          b: 2,
+          get c() {
+            return this.a + this.b;
+          },
+        };
+        bus.emit('evt6', obj);
+      })
+    ).resolves.toEqual(3);
+  });
+
+  test(`注册事件evt7并携带1个参数并携带thisArg触发`, () => {
+    return expect(
+      new Promise((resolve) => {
+        bus.on('evt7', (args) => {
+          resolve(args.c);
+        });
+        const obj = {
+          a: 1,
+          b: 2,
+          get c() {
+            return this.a + this.b;
+          },
+        };
+        bus.emitWithThisArg('evt7', { a: 55, b: 33 }, obj);
+      })
+    ).resolves.toEqual(3);
   });
 });
