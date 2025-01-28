@@ -29,7 +29,7 @@ bus.once(eventName: string, handler: Function);
 
 // 触发事件，可加参数。事件名称不能含有*
 // Trigger the event. Arguments can be provided. EventName must not include *
-bus.emit(eventName: string, ...args:any);
+bus.emit(eventName: string, ...args: any);
 
 // 注销事件和其对应的所有handler，如果指定handler则只注销次事件下的特定handler
 // 注意！注销事件不会进行通配符匹配，必须使用和注册的时候一样的事件名
@@ -37,7 +37,7 @@ bus.emit(eventName: string, ...args:any);
 // Unregister the event with its all handlers. If a specific handler is given, it will be unregistered.
 // Note that wildcard cannot be used here, we must use the same eventName as the event was registered.
 // Example: When use "evt.*" to register, we must use "evt.*" to unregister it. Using "evt.a" will not work.
-bus.off(eventName: string, handler?:Function);
+bus.off(eventName: string, handler?: Function);
 
 // 清空所有事件
 // Clear all events.
@@ -74,10 +74,14 @@ bus.emit('evt', '参数1', '参数2');
 
 ```typescript
 let count = 0;
-bus.on('evt',() => {
+bus.on(
+  'evt',
+  () => {
     count++;
     console.log('count', count);
-},3);
+  },
+  3
+);
 
 bus.emit('evt');
 bus.emit('evt');
@@ -87,7 +91,7 @@ bus.emit('evt');
 
 // 再调用已经不再会触发
 // This handler will not be triggered anymore.
-bus.emit('evt'); 
+bus.emit('evt');
 
 /* output:
 count 1
@@ -103,7 +107,7 @@ Support binding thisArg, and when doing so, we recommend you not to use arrow fu
 ```typescript
 // 与emit不同之处在于第二个参数是thisArg
 // The second parameter is thisArg
-bus.emitWithThisArg(eventName: string, thisArg: any, ...args:any);
+bus.emitWithThisArg(eventName: string, thisArg: any, ...args: any);
 ```
 
 ```typescript

@@ -17,7 +17,9 @@ export class EventBus {
     error: Function;
     throw: Function;
   };
+
   private readonly eventMap: Map<EventName, Set<EventConfig>>;
+
   constructor() {
     const header = '[TS-Event-Hub]';
     this.logger = {
