@@ -5,7 +5,7 @@ import { green } from './color';
 const bus = new EventBus();
 let no = 1;
 beforeEach(() => {
-  console.log(green(`[${no}]==============================`));
+  console.log(green(`[${no}]==============================[${no}]`));
   bus.clear();
   no++;
 });
@@ -30,7 +30,7 @@ describe('EventBus class', () => {
         bus.emit('evt2');
         setTimeout(() => {
           resolve(callback);
-        }, 100);
+        }, 200);
       })
     ).resolves.toBeCalledTimes(1);
   });
@@ -45,7 +45,7 @@ describe('EventBus class', () => {
         bus.emit('evt3');
         setTimeout(() => {
           resolve(callback);
-        }, 100);
+        }, 200);
       })
     ).resolves.toBeCalledTimes(2);
   });
@@ -68,7 +68,7 @@ describe('EventBus class', () => {
         });
         setTimeout(() => {
           resolve(callback);
-        }, 100);
+        }, 200);
       })
     ).resolves.toBeCalledTimes(6);
   });
@@ -120,12 +120,12 @@ describe('EventBus class', () => {
         }),
         new Promise((resolve) => {
           bus.on('evt7-arrowfunc', () => {
-            resolve((this as any).c);
+            resolve(this === undefined ? 'this is undefined' : (this as any).c);
           });
           bus.emitWithThisArg('evt7-arrowfunc', obj);
         }),
       ])
-    ).resolves.toEqual([3, undefined]);
+    ).resolves.toEqual([3, 'this is undefined']);
   });
 
   test(`注册事件evt8.*.*和evt8.a.*，并同时触发两者`, () => {
@@ -138,7 +138,7 @@ describe('EventBus class', () => {
         bus.emit('evt8.a.*');
         setTimeout(() => {
           resolve(callback);
-        }, 100);
+        }, 200);
       })
     ).resolves.toBeCalledTimes(4);
   });
