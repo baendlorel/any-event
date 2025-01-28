@@ -1,15 +1,12 @@
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { EventBus } from '../src';
-const color = {
-  green: (text: string) => `\x1B[32m${text}\x1B[0m`,
-  yellow: (text: string) => `\x1B[33m${text}\x1B[0m`,
-  red: (text: string) => `\x1B[31m${text}\x1B[0m`,
-};
+import { green } from './color';
 
 const bus = new EventBus();
 let no = 1;
 beforeEach(() => {
-  console.log(color.green(`[${no}]==============================`));
+  console.log(green(`[${no}]==============================`));
+  bus.clear();
   no++;
 });
 
@@ -105,21 +102,60 @@ describe('EventBus class', () => {
     ).resolves.toEqual(3);
   });
 
-  test(`注册事件evt7并携带1个参数并携带thisArg触发`, () => {
+  test(`分别用普通函数和箭头函数注册事件evt7并携带thisArg触发`, () => {
+    const obj = {
+      a: 1,
+      b: 2,
+      get c() {
+        return this.a + this.b;
+      },
+    };
+    return expect(
+      Promise.all([
+        new Promise((resolve) => {
+          bus.on('evt7', function () {
+            resolve((this as any).c);
+          });
+          bus.emitWithThisArg('evt7', obj);
+        }),
+        new Promise((resolve) => {
+          bus.on('evt7-arrowfunc', () => {
+            resolve((this as any).c);
+          });
+          bus.emitWithThisArg('evt7-arrowfunc', obj);
+        }),
+      ])
+    ).resolves.toEqual([3, undefined]);
+  });
+
+  test(`注册事件evt8.*.*和evt8.a.*，并同时触发两者`, () => {
     return expect(
       new Promise((resolve) => {
-        bus.on('evt7', (args) => {
-          resolve(args.c);
-        });
-        const obj = {
-          a: 1,
-          b: 2,
-          get c() {
-            return this.a + this.b;
-          },
-        };
-        bus.emitWithThisArg('evt7', { a: 55, b: 33 }, obj);
+        const callback = jest.fn();
+        bus.on('evt8.*.*', callback);
+        bus.on('evt8.a.*', callback);
+        bus.emit('evt8.a.2');
+        bus.emit('evt8.a.*');
+        setTimeout(() => {
+          resolve(callback);
+        }, 100);
       })
-    ).resolves.toEqual(3);
+    ).resolves.toBeCalledTimes(4);
+  });
+
+  test(`注册事件evt9，重复添加handler，执行次数从undefined被更新为6次`, () => {
+    return expect(
+      new Promise((resolve) => {
+        const map = Reflect.get(bus, 'eventMap') as any;
+        const callback = () => 1;
+        bus.on('evt9', callback);
+        const capacity1 = (Array.from(map.get('evt9'))[0] as any).capacity;
+        bus.on('evt9', callback, 6);
+        const capacity2 = (Array.from(map.get('evt9'))[0] as any).capacity;
+        bus.logEventMaps();
+        const size = map.get('evt9').size;
+        resolve({ size, capacity1, capacity2 });
+      })
+    ).resolves.toEqual({ size: 1, capacity1: undefined, capacity2: 6 });
   });
 });
