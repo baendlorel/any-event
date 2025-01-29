@@ -48,7 +48,14 @@ class EventBus {
             return false;
         }
         catch (error) {
-            return true;
+            if (error instanceof TypeError &&
+                error.message &&
+                error.message.includes('is not a constructor')) {
+                return true;
+            }
+            this.logger.error('isArrowFunction', 'fn:', fn);
+            this.logger.throw('isArrowFunction判断发生未知错误');
+            return false;
         }
     }
     /**
