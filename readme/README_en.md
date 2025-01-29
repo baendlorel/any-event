@@ -1,110 +1,60 @@
 # Ts-Event-Bus
 
-这是一个适用于 JavaScript 和 TypeScript 的全局事件总线仓库。
+This is an event hub module for both JavaScript and TypeScript.
 
-## 文档语言
+## Document Language
 
-[简体中文](README.md)
+[简体中文](../README.md)
 
-[English](readme/README_en.md)
+[English](README_en.md)
 
-## 安装
+## Installation
 
-### 使用 npm
+### Using npm
 
 ```shell
 npm i ts-event-bus
 ```
 
-### 使用 yarn
+### Using yarn
 
 ```shell
 yarn add ts-event-bus
 ```
 
-### 使用 pnpm
+### Using pnpm
 
 ```shell
 pnpm i ts-event-bus
 ```
 
-## 使用方法
+## Usage
 
-### 引入
+### How to import
 
 ```typescript
 import { EventBus } from 'ts-event-bus';
 ```
 
-或者
+or
 
 ```typescript
 const EventBus = require('ts-event-bus').EventBus;
 ```
 
-### 创建实例
+Create Instance
 
 ```typescript
 const bus = new EventBus();
 ```
 
-### 基本使用
-
-注册事件，capacity 表示该事件限定触发的次数，超过后不会再触发。如果没有设置 capacity，则可以无限次触发
+基本使用方法（Basic usage lies below）：
 
 ```typescript
-bus.on(eventName: string, handler: Function, capacity?: number);
-```
-
-```typescript
-bus.on(eventName: string, handler: Function, capacity?: number);
-
-// 只能被触发1次的事件，等价于bus.on(eventName,()=>{},1);
-// Register an event that can only be triggered once.
-bus.once(eventName: string, handler: Function);
-
-// 触发事件，可加参数。事件名称不能含有*
-// Trigger the event. Arguments can be provided. EventName must not include *
-bus.emit(eventName: string, ...args: any);
-
-// 注销事件和其对应的所有handler，如果指定handler则只注销次事件下的特定handler
-// 注意！注销事件不会进行通配符匹配，必须使用和注册的时候一样的事件名
-// 例如：注册用“evt.*”，那么注销也要用“evt.*”，用“evt.a”是不行的
-// Unregister the event with its all handlers. If a specific handler is given, it will be unregistered.
-// Note that wildcard cannot be used here, we must use the same eventName as the event was registered.
-// Example: When use "evt.*" to register, we must use "evt.*" to unregister it. Using "evt.a" will not work.
-bus.off(eventName: string, handler?: Function);
-
-// 清空所有事件
-// Clear all events.
-bus.clear();
-```
-
-```typescript
-bus.on(eventName: string, handler: Function, capacity?: number);
-
-// 只能被触发1次的事件，等价于bus.on(eventName,()=>{},1);
-// Register an event that can only be triggered once.
-bus.once(eventName: string, handler: Function);
-
-// 触发事件，可加参数。事件名称不能含有*
-// Trigger the event. Arguments can be provided. EventName must not include *
-bus.emit(eventName: string, ...args: any);
-
-// 注销事件和其对应的所有handler，如果指定handler则只注销次事件下的特定handler
-// 注意！注销事件不会进行通配符匹配，必须使用和注册的时候一样的事件名
-// 例如：注册用“evt.*”，那么注销也要用“evt.*”，用“evt.a”是不行的
-// Unregister the event with its all handlers. If a specific handler is given, it will be unregistered.
-// Note that wildcard cannot be used here, we must use the same eventName as the event was registered.
-// Example: When use "evt.*" to register, we must use "evt.*" to unregister it. Using "evt.a" will not work.
-bus.off(eventName: string, handler?: Function);
-
-// 清空所有事件
-// Clear all events.
-bus.clear();
-```
-
-```typescript
+// 注册事件，capacity表示该事件限定触发的次数，超过后不会再触发
+// 如果没有设置capacity，则可以无限次触发
+// Register events. Capacity means it will be triggered a limited number of times.
+// If capacity is not set, the event will be able to be triggered infinite times.
 bus.on(eventName: string, handler: Function, capacity?: number);
 
 // 只能被触发1次的事件，等价于bus.on(eventName,()=>{},1);
