@@ -50,7 +50,9 @@ const bus = new EventBus();
 
 ### Basic usage
 
-Register events. Capacity means it will be triggered a limited number of times.If capacity is not set, the event will be able to be triggered infinite times.
+#### Register events
+
+Capacity means it will be triggered a limited number of times.If capacity is not set, the event will be able to be triggered infinite times.
 
 ```typescript
 bus.on(eventName: string, handler: Function, capacity?: number);
@@ -62,11 +64,15 @@ Register an event that can only be triggered once.Equivalent to bus.on(eventName
 bus.once(eventName: string, handler: Function);
 ```
 
-Trigger the event. Arguments can be provided. \*_EventName must not include `_`.
+#### Trigger the event
+
+Arguments can be provided. \*_EventName must not include `_`.
 
 ```typescript
 bus.emit(eventName: string, ...args: any);
 ```
+
+#### Unregister
 
 Unregister the event with its all handlers. If a specific handler is given, it will be unregistered.
 Note that **wildcard should not be used here**, we must use the same eventName as the event was registered.
@@ -76,7 +82,7 @@ _Example: When use "evt." to register, we must use "evt." to unregister it. Usin
 bus.off(eventName: string, handler?: Function);
 ```
 
-Clear all events.
+#### Clear all events
 
 ```typescript
 bus.clear();
@@ -137,7 +143,9 @@ count 3
 
 ### Advanced usage
 
-Support binding thisArg, and when doing so, we recommend you not to use arrow functions. (If you use arrow function in this case, there will be a console warn message)
+#### Binding thisArg
+
+We recommend you not to use arrow functions. (If you use arrow function in this case, there will be a console warn message)
 
 The second parameter is thisArg.
 
@@ -159,36 +167,46 @@ bus.emitWithThisArg('evt', { a: 3 }, { b: 2 });
 // output: 5
 ```
 
-Support wildcards. We can use `a.*` or `a.*.a` to register events. The `*` part can be matched by anything but `*` itself.
+#### Wildcards
+
+We can use `a.*` or `a.*.a` to register events. The `*` part can be matched by anything but`*`and `.`.
+
+**Please do not use eventNames like `*.*` or `*evt`！** This is not included in wildcard match.It might not act like what you expected.
 
 ```typescript
 bus.on('evt.*', () => {});
-
-bus.emit('evt.3'); // Will be triggered
-bus.emit('evt.name'); // Will be triggered
-bus.emit('evt.'); // This will not trigger the event
 ```
 
-Wildcards lead to multiple triggers
+Then
+
+- `evt.3` **will** trigger the event
+- `evt.name` **will** trigger the event
+- `evt.` **will** not trigger the event
+
+Wildcards may lead to multiple triggers, as we register these 2 events below
 
 ```typescript
-bus.on('evt.*.*', () => {});
-bus.on('evt.3.*', () => {});
-
-// Only the first event will be triggered
-bus.emit('evt.4.a');
-
-// Both 2 events will be triggered
-bus.emit('evt.3.a');
+bus.on('evt.*.*', () => {}); // fisrt event
+bus.on('evt.3.*', () => {}); // second event
 ```
 
-When adding the same handler function to the same eventName, the handler will not be registered again and only the capacity will be updated.There will be a warning message shown in console when this happens.
+Then
+
+- `evt.4.a` Only the **first event** will be triggered
+- `evt.3.a` Both **2 events** will be triggered
+
+#### Duplicated registration
+
+When adding the same handler function to the same eventName, the handler will not be registered again and only the capacity will be updated.
+
+When this happens, there will be a warning message shown in console.
 
 ```typescript
 const handler = () => {};
+// Handler can be triggered for 10 times.
 bus.on('evt', handler, 10);
 
-// capacity will change to undefined such that the event can be triggered infinite times.
+// Now capacity will change to undefined such that the event can be triggered infinite times.
 bus.on('evt', handler);
 ```
 
@@ -204,3 +222,14 @@ bus.turnOffLog();
 // Print all events and their handlers. Will not print when log is off, but can be forced by letting forced = true.
 bus.logEventMaps(forced?: boolean);
 ```
+
+# License
+
+GPLv3
+
+### Keywords
+
+- [event](https://www.npmjs.com/search?q=keywords:event)
+- [bus](https://www.npmjs.com/search?q=keywords:bus)
+- [node](https://www.npmjs.com/search?q=keywords:node)
+- [nodejs](https://www.npmjs.com/search?q=keywords:nodejs)
