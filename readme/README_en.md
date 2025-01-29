@@ -169,7 +169,7 @@ bus.emitWithThisArg('evt', { a: 3 }, { b: 2 });
 
 #### Wildcards
 
-We can use `a.*` or `a.*.a` to register events. The `*` part can be matched by anything but`*`and `.`.
+We can use `a.*` or `a.*.a` to register events. The `*` part can be matched by anything but `*`and `.`.
 
 **Please do not use eventNames like `*.*` or `*evt`！** This is not included in wildcard match.It might not act like what you expected.
 
@@ -226,10 +226,3 @@ bus.logEventMaps(forced?: boolean);
 # License
 
 GPLv3
-
-### Keywords
-
-- [event](https://www.npmjs.com/search?q=keywords:event)
-- [bus](https://www.npmjs.com/search?q=keywords:bus)
-- [node](https://www.npmjs.com/search?q=keywords:node)
-- [nodejs](https://www.npmjs.com/search?q=keywords:nodejs)

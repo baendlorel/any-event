@@ -2,11 +2,13 @@
 
 这是一个适用于 JavaScript 和 TypeScript 的全局事件总线仓库。
 
-## 文档语言
+This is an event hus module for both JavaScript and TypeScript.
 
-[简体中文](README.md)
+## 文档语言 Document Language
 
-[English](readme/README_en.md)
+[简体中文](README.md) —— 当前语言
+
+[English](readme/README_en.md) —— If you are in NPM page, please enter github to click and read it
 
 ## 安装
 
@@ -226,10 +228,3 @@ bus.logEventMaps(forced?: boolean);
 # License 许可
 
 GPLv3
-
-### Keywords
-
-- [event](https://www.npmjs.com/search?q=keywords:event)
-- [bus](https://www.npmjs.com/search?q=keywords:bus)
-- [node](https://www.npmjs.com/search?q=keywords:node)
-- [nodejs](https://www.npmjs.com/search?q=keywords:nodejs)
