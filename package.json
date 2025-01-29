@@ -1,5 +1,5 @@
 {
-	"name": "ts-event-hub",
+	"name": "ts-event-bus",
 	"version": "1.0.0",
 	"author": {
 		"name": "KasukabeTsumugi",
@@ -9,8 +9,7 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
-		"dist",
-		"readme"
+		"dist"
 	],
 	"homepage": "https://github.com/baendlorel/ts-event-bus#readme",
 	"repository": {
