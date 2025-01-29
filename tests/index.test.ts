@@ -165,6 +165,6 @@ describe('EventBus class', () => {
           resolve(callback);
         }, 200);
       })
-    ).resolves.toBeCalledTimes(2);
+    ).resolves.toBeCalledTimes(1);
   });
 });

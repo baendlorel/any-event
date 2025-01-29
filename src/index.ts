@@ -66,7 +66,11 @@ export class EventBus {
       if (en.includes('.*')) {
         const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
         const reg = new RegExp(t, 'g');
-        if (eventName.match(reg)) {
+        const match = eventName.match(reg);
+
+        // 必须这样写来防止出现只匹配了前半段名字的情形
+        // Avoid match only part of the name
+        if (match && match[0] === eventName) {
           // 这是key值提取的，一定存在
           // for of .keys() garuantees its existance
           const c = this.eventMap.get(en)!;
