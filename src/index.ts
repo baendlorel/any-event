@@ -1,15 +1,62 @@
-type EventHandler = (...args: any[]) => void;
+/**
+ * @name EventBus
+ * @author Kasukabe Tsumugi
+ * @license GPLv3
+ */
 
+/**
+ * 事件处理器类型，普通的函数
+ * Type of an event handler, it is just a normal function
+ */
+type EventHandler = (...args: any[]) => any;
+
+/**
+ * 事件名类型，普通的string
+ * Type of event name, it is just a normal string
+ */
 type EventName = string;
 
+/**
+ * 事件配置，包含事件名称、处理函数handler、限制次数和handler是否为箭头函数
+ * Event configuration, including name, handler function, trigger limit and whether handler is an arrow function
+ */
 type EventConfig = {
+  /**
+   * 事件名称。用来定位eventMap的键值
+   * Event name. Used to locate the key of eventMap
+   */
   name: EventName;
+
+  /**
+   * 事件处理函数，是否为箭头函数会影响thisArg的绑定
+   * Event handler. Whether it is an arrow function will affect binding of thisArg.
+   * @see 详见函数'emitWithThisArg'的注释
+   * @see comment of function 'emitWithThisArg'
+   */
   handler: EventHandler;
+
+  /**
+   * 触发次数，超过后次配置自动失效。undefined代表无限次
+   * Trigger limit, the handler will expire when it reaches this limit. Undefined means it can be triggered infinite times.
+   */
   capacity: number | undefined;
+
+  /**
+   * 记录handler是否为箭头函数。在注册的时候就直接判断好，方便后续使用
+   * Handler is whether an arrow function or not. Check it during registeration for further use.
+   */
   isArrowFunctionHandler: boolean;
 };
 
+/**
+ * 事件总线类
+ * Event Bus Class
+ */
 export class EventBus {
+  /**
+   * 用来加日志的类
+   * Logger with header '[TS-Event-Hub]'
+   */
   private readonly logger: {
     showLog: boolean;
     warn: Function;
@@ -18,6 +65,10 @@ export class EventBus {
     throw: Function;
   };
 
+  /**
+   * 保存了所有注册的事件名到事件配置集合的映射。
+   * Map of all registered eventName and set of eventConfigs.
+   */
   private readonly eventMap: Map<EventName, Set<EventConfig>>;
 
   constructor() {
@@ -34,19 +85,25 @@ export class EventBus {
     this.eventMap = new Map();
   }
 
-  private isArrowFunction(f: any) {
-    if (typeof f !== 'function') {
+  /**
+   * 判断一个函数是否为箭头函数。
+   * Check if a function is an arrow function.
+   * @param fn
+   * @returns
+   */
+  private isArrowFunction(fn: any) {
+    if (typeof fn !== 'function') {
       this.logger.throw(
         '给的参数不是函数，无法判断是否为箭头函数。The parameter provided is not a function, cannot tell it is whether an arrow function'
       );
     }
 
     // 经过研究，使用new操作符是最为确定的判断方法，箭头函数无法new
-    // 此处用proxy拦截构造函数，防止普通函数真的运行
+    // 此处用proxy拦截构造函数，防止普通函数真的作为构造函数运行
     // After some research, using new operator to distinct arrow functions from normal functions is the best approach.
-    // We use proxy here to avoid truely running the normal function(while arrow function cannot be newed)
+    // We use proxy here to avoid truely running the constructor normal function(while arrow function cannot be newed)
     try {
-      const fp = new Proxy(f, {
+      const fp = new Proxy(fn, {
         construct(target, args) {
           return {};
         },
@@ -58,6 +115,12 @@ export class EventBus {
     }
   }
 
+  /**
+   * 用通配符匹配获取一个事件名称对应的所有配置集合。
+   * Using wildcard to match all config sets of an eventName.
+   * @param eventName 事件名
+   * @returns
+   */
   private getConfigs(eventName: EventName): Set<EventConfig>[] {
     const matchedConfigs: Set<EventConfig>[] = [];
     for (const en of this.eventMap.keys()) {
@@ -84,21 +147,42 @@ export class EventBus {
     return matchedConfigs;
   }
 
+  /**
+   * 使用“===”来匹配事件名，查找事件配置集合
+   * Using "===" to find event configs set
+   * @param eventName 事件名
+   * @returns
+   */
   private getExactConfigs(eventName: EventName): Set<EventConfig> | undefined {
     return this.eventMap.get(eventName);
   }
 
+  /**
+   * 注册事件，事件名称不能使用前面不带.的*。
+   * Register an event. Do not use names with '*' not come after '.'.
+   * @param eventName 事件名 name of the event
+   * @param handler 处理函数 dealer function
+   * @param capacity 触发上限 trigger limit
+   */
   private register(eventName: EventName, handler: EventHandler, capacity?: number) {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
-      throw new Error('eventName必须是string。eventName must be a string');
+      this.logger.throw('eventName必须是string。eventName must be a string');
     }
     if (typeof handler !== 'function') {
-      throw new Error('handler必须是function。handler must be a function');
+      this.logger.throw('handler必须是function。handler must be a function');
     }
     if (typeof capacity !== 'number' && typeof capacity !== 'undefined') {
-      throw new Error('capacity必须是number或undefined。capacity must be a number or undefined');
+      this.logger.throw('capacity必须是number或undefined。capacity must be a number or undefined');
+    }
+
+    // 防止事件名称出现前面不带.的*。比如“*evt”和“evt*”
+    // Prevent eventNames with '*' not come after '.'. e.g. '*evt' and 'evt*'
+    if (eventName.match(/[^.]\*/g)) {
+      this.logger.throw(
+        `事件名称不允许使用前面不带.的*号，比如“*evt”和“evt*”。eventName cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`
+      );
     }
 
     let configs: Set<EventConfig> | undefined = this.eventMap.get(eventName);
@@ -134,10 +218,23 @@ export class EventBus {
     }
   }
 
+  /**
+   * 注册事件，事件名称不能使用前面不带.的*。
+   * Register an event. Do not use names with '*' not come after '.'.
+   * @param eventName 事件名 name of the event
+   * @param handler 处理函数 dealer function
+   * @param capacity 触发上限 trigger limit
+   */
   public on(eventName: EventName, handler: EventHandler, capacity?: number) {
     this.register(eventName, handler, capacity);
   }
 
+  /**
+   * 注册只触发1次的事件，事件名称不能使用前面不带.的*。
+   * Register an event that can only be triggered once. Do not use names with '*' not come after '.'.
+   * @param eventName 事件名 name of the event
+   * @param handler 处理函数 dealer function
+   */
   public once(eventName: EventName, handler: EventHandler) {
     this.register(eventName, handler, 1);
   }
@@ -153,10 +250,12 @@ export class EventBus {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
-      throw new Error('eventName必须是string。eventName must be a string');
+      this.logger.throw('eventName必须是string。eventName must be a string');
     }
     if (typeof handler !== 'function' && typeof handler !== 'undefined') {
-      throw new Error('handler必须是function或undefined。handler must be a function or undefined');
+      this.logger.throw(
+        'handler必须是function或undefined。handler must be a function or undefined'
+      );
     }
 
     const configs = this.getExactConfigs(eventName);
@@ -187,6 +286,10 @@ export class EventBus {
     }
   }
 
+  /**
+   * 清除事件配置映射
+   * Clear all event-config maps
+   */
   public clear() {
     this.logger.log(
       `清空所有事件，共${this.eventMap.size}个。Clear all ${this.eventMap.size} events`
@@ -194,13 +297,21 @@ export class EventBus {
     this.eventMap.clear();
   }
 
+  /**
+   * 触发事件，事件名不能带有*号。
+   * Trigger an event by name. Not allow to use names includes '*'.
+   * @param eventName
+   * @param args
+   */
   public emit(eventName: EventName, ...args: any) {
     this.emitWithThisArg(eventName, undefined, ...args);
   }
 
   /**
-   * 如果真的要改变this指向，那么不要使用箭头函数
-   * If you want to change thisArg, then do not use arrow functions.
+   * 触发事件，事件名不能带有*号。
+   * 如果真的要改变this指向，那么不要使用箭头函数。
+   * Trigger an event by name. Not allow to use names includes '*'.
+   * If you want to change thisArg, do not use arrow functions.
    * @param eventName
    * @param thisArg
    * @param args
@@ -209,13 +320,13 @@ export class EventBus {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
-      throw new Error('eventName必须是string。eventName must be a string');
+      this.logger.throw('eventName必须是string。eventName must be a string');
     }
 
     // 触发用的事件名称不能带星号
     // eventName cannot include *.
     if (eventName.includes('*')) {
-      throw new Error(
+      this.logger.throw(
         '触发用的eventName不能包含*。eventName used in emit function cannot include *'
       );
     }
@@ -262,14 +373,25 @@ export class EventBus {
     }
   }
 
+  /**
+   * 开启控制台日志
+   */
   public turnOnLog() {
     this.logger.showLog = true;
   }
 
+  /**
+   * 关闭控制台日志
+   */
   public turnOffLog() {
     this.logger.showLog = false;
   }
 
+  /**
+   * 在控制台打印整个eventMap，用来查看所有事件和其配置。
+   * Log eventMap in console to see all the event configs.
+   * @param forced 为真则在关闭日志的情况下也可以打印。 If true, it can log even if the log is closed.
+   */
   public logEventMaps(forced?: boolean) {
     if (forced) {
       console.log(
