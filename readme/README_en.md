@@ -1,4 +1,4 @@
-# Ts-Event-Bus
+# js-event-bus-lite
 
 This is an event hub module for both JavaScript and TypeScript.
 
@@ -13,19 +13,19 @@ This is an event hub module for both JavaScript and TypeScript.
 ### Using npm
 
 ```shell
-npm i ts-event-bus
+npm i js-event-bus-lite
 ```
 
 ### Using yarn
 
 ```shell
-yarn add ts-event-bus
+yarn add js-event-bus-lite
 ```
 
 ### Using pnpm
 
 ```shell
-pnpm i ts-event-bus
+pnpm i js-event-bus-lite
 ```
 
 ## Usage
@@ -33,13 +33,13 @@ pnpm i ts-event-bus
 ### How to import
 
 ```typescript
-import { EventBus } from 'ts-event-bus';
+import { EventBus } from 'js-event-bus-lite';
 ```
 
 or
 
 ```typescript
-const EventBus = require('ts-event-bus').EventBus;
+const EventBus = require('js-event-bus-lite').EventBus;
 ```
 
 Create Instance

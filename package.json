@@ -1,22 +1,24 @@
 {
-	"name": "ts-event-bus",
+	"name": "js-event-bus-lite",
 	"version": "1.0.0",
 	"author": {
 		"name": "KasukabeTsumugi",
 		"email": "futami16237@gmail.com"
 	},
-	"description": "简单易用的js、ts事件总线模块，支持通配符",
+	"description": "Simple EventBus module for js/ts projects, support wildcards",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
 		"dist"
 	],
-	"homepage": "https://github.com/baendlorel/ts-event-bus#readme",
+	"homepage": "https://github.com/baendlorel/js-event-bus-lite#readme",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/baendlorel/ts-event-bus"
+		"url": "https://github.com/baendlorel/js-event-bus-lite"
 	},
 	"keywords": [
+		"JavaScript",
+		"TypeScript",
 		"event",
 		"bus",
 		"node",
@@ -34,5 +36,8 @@
 		"babel-jest": "^29.7.0",
 		"jest": "^29.7.0"
 	},
-	"license": "GPL-3.0-only"
+	"license": "GPL-3.0-only",
+	"dependencies": {
+		"uglify-js": "^3.19.3"
+	}
 }

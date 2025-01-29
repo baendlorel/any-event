@@ -1,4 +1,4 @@
-# Ts-Event-Bus
+# js-event-bus-lite
 
 这是一个适用于 JavaScript 和 TypeScript 的全局事件总线仓库。
 
@@ -15,19 +15,19 @@ This is an event hus module for both JavaScript and TypeScript.
 ### 使用 npm
 
 ```shell
-npm i ts-event-bus
+npm i js-event-bus-lite
 ```
 
 ### 使用 yarn
 
 ```shell
-yarn add ts-event-bus
+yarn add js-event-bus-lite
 ```
 
 ### 使用 pnpm
 
 ```shell
-pnpm i ts-event-bus
+pnpm i js-event-bus-lite
 ```
 
 ## 使用方法
@@ -35,13 +35,13 @@ pnpm i ts-event-bus
 ### 引入
 
 ```typescript
-import { EventBus } from 'ts-event-bus';
+import { EventBus } from 'js-event-bus-lite';
 ```
 
 或者
 
 ```typescript
-const EventBus = require('ts-event-bus').EventBus;
+const EventBus = require('js-event-bus-lite').EventBus;
 ```
 
 ### 创建实例
