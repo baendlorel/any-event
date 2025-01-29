@@ -1,6 +1,6 @@
 /**
  * @name EventBus
- * @author Kasukabe Tsumugi
+ * @author Kasukabe Tsumugi <futami16237@gmail.com>
  * @license GPLv3
  */
 

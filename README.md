@@ -8,7 +8,7 @@ This is an event hus module for both JavaScript and TypeScript.
 
 [简体中文](README.md) —— 当前语言
 
-[English](readme/README_en.md) —— If you are in NPM page, please enter github to click and read it
+[English](readme/README_en.md)
 
 ## 安装
 

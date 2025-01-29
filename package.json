@@ -5,6 +5,7 @@
 		"name": "KasukabeTsumugi",
 		"email": "futami16237@gmail.com"
 	},
+	"description": "简单易用的js、ts事件总线模块，支持通配符",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
