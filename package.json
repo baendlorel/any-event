@@ -9,7 +9,8 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"files": [
-		"dist"
+		"dist",
+		"lib"
 	],
 	"homepage": "https://github.com/baendlorel/js-event-bus-lite#readme",
 	"repository": {
@@ -26,7 +27,7 @@
 	],
 	"scripts": {
 		"test": "clear & jest",
-		"build": "rm -rf dist & tsc"
+		"build": "rm -rf dist lib && tsc && mkdir lib && uglifyjs ./dist/index.js -c -m -o ./lib/js-event-bus-lite.min.js"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.26.7",
