@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
-import { EventBus } from '../src';
+import EventBus from '../src';
 import { green } from './color';
 
 const bus = new EventBus();
