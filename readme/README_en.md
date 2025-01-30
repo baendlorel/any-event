@@ -32,14 +32,31 @@ pnpm i js-event-bus-lite
 
 ### How to import
 
+#### Importing in browser application
+
+If you want to use it in your Browser apps you can import the library like this. [Download in GitHub](../dist/js-event-bus-lite.min.js)
+
+```html
+<body>
+  <div>Put your content here</div>
+
+  <script src="your-folder/js-event-bus-lite.min.js"></script>
+  <script>
+    const eventBus = new EventBus();
+  </script>
+</body>
+```
+
+#### Importing in your NodeJS project or ES6 environment （Recommended）
+
 ```typescript
-import { EventBus } from 'js-event-bus-lite';
+import EventBus from 'js-event-bus-lite';
 ```
 
 or
 
 ```typescript
-const EventBus = require('js-event-bus-lite').EventBus;
+const EventBus = require('js-event-bus-lite');
 ```
 
 Create Instance

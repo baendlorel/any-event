@@ -11,12 +11,6 @@
 type EventHandler = (...args: any[]) => any;
 
 /**
- * 事件名类型，普通的string
- * Type of event name, it is just a normal string
- */
-type EventName = string;
-
-/**
  * 事件配置，包含事件名称、处理函数handler、限制次数和handler是否为箭头函数
  * Event configuration, including name, handler function, trigger limit and whether handler is an arrow function
  */
@@ -25,7 +19,7 @@ type EventConfig = {
    * 事件名称。用来定位eventMap的键值
    * Event name. Used to locate the key of eventMap
    */
-  name: EventName;
+  name: string;
 
   /**
    * 事件处理函数，是否为箭头函数会影响thisArg的绑定
@@ -52,32 +46,32 @@ type EventConfig = {
  * 事件总线类
  * Event Bus Class
  */
-export class EventBus {
+export default class EventBus {
   /**
-   * 用来加日志的类
+   * 简易控制台，可以加日志
    * Logger with header '[TS-Event-Hub]'
    */
   private readonly logger: {
-    showLog: boolean;
-    warn: Function;
-    log: Function;
-    error: Function;
-    throw: Function;
+    on: boolean;
+    log: (...args: any[]) => void;
+    warn: (...args: any[]) => void;
+    error: (...args: any[]) => void;
+    throw: (...args: any[]) => void;
   };
 
   /**
    * 保存了所有注册的事件名到事件配置集合的映射。
    * Map of all registered eventName and set of eventConfigs.
    */
-  private readonly eventMap: Map<EventName, Set<EventConfig>>;
+  private readonly eventMap: Map<string, Set<EventConfig>>;
 
   constructor() {
     const header = '[TS-Event-Hub]';
     this.logger = {
-      showLog: true,
-      log: (...args: any) => this.logger.showLog && console.log(header, ...args),
-      warn: (...args: any) => this.logger.showLog && console.warn(header, ...args),
-      error: (...args: any) => this.logger.showLog && console.error(header, ...args),
+      on: true,
+      log: (...args: any[]) => this.logger.on && console.log(header, ...args),
+      warn: (...args: any[]) => this.logger.on && console.warn(header, ...args),
+      error: (...args: any[]) => this.logger.on && console.error(header, ...args),
       throw: (message: string) => {
         throw new Error(`${header} ${message}`);
       },
@@ -130,7 +124,7 @@ export class EventBus {
    * @param eventName 事件名
    * @returns
    */
-  private getConfigs(eventName: EventName): Set<EventConfig>[] {
+  private getConfigs(eventName: string): Set<EventConfig>[] {
     const matchedConfigs: Set<EventConfig>[] = [];
     for (const en of this.eventMap.keys()) {
       // 在注册时保证不会出现特殊情况
@@ -162,7 +156,7 @@ export class EventBus {
    * @param eventName 事件名
    * @returns
    */
-  private getExactConfigs(eventName: EventName): Set<EventConfig> | undefined {
+  private getExactConfigs(eventName: string): Set<EventConfig> | undefined {
     return this.eventMap.get(eventName);
   }
 
@@ -173,7 +167,7 @@ export class EventBus {
    * @param handler 处理函数 dealer function
    * @param capacity 触发上限 trigger limit
    */
-  private register(eventName: EventName, handler: EventHandler, capacity?: number) {
+  private register(eventName: string, handler: EventHandler, capacity?: number) {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
@@ -234,7 +228,7 @@ export class EventBus {
    * @param handler 处理函数 dealer function
    * @param capacity 触发上限 trigger limit
    */
-  public on(eventName: EventName, handler: EventHandler, capacity?: number) {
+  public on(eventName: string, handler: EventHandler, capacity?: number) {
     this.register(eventName, handler, capacity);
   }
 
@@ -244,7 +238,7 @@ export class EventBus {
    * @param eventName 事件名 name of the event
    * @param handler 处理函数 dealer function
    */
-  public once(eventName: EventName, handler: EventHandler) {
+  public once(eventName: string, handler: EventHandler) {
     this.register(eventName, handler, 1);
   }
 
@@ -255,7 +249,7 @@ export class EventBus {
    * @param handler
    * @returns
    */
-  public off(eventName: EventName, handler?: EventHandler) {
+  public off(eventName: string, handler?: EventHandler) {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
@@ -312,7 +306,7 @@ export class EventBus {
    * @param eventName
    * @param args
    */
-  public emit(eventName: EventName, ...args: any) {
+  public emit(eventName: string, ...args: any) {
     this.emitWithThisArg(eventName, undefined, ...args);
   }
 
@@ -325,7 +319,7 @@ export class EventBus {
    * @param thisArg
    * @param args
    */
-  public emitWithThisArg(eventName: EventName, thisArg: any, ...args: any) {
+  public emitWithThisArg(eventName: string, thisArg: any, ...args: any) {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
@@ -386,14 +380,14 @@ export class EventBus {
    * 开启控制台日志
    */
   public turnOnLog() {
-    this.logger.showLog = true;
+    this.logger.on = true;
   }
 
   /**
    * 关闭控制台日志
    */
   public turnOffLog() {
-    this.logger.showLog = false;
+    this.logger.on = false;
   }
 
   /**

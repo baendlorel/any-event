@@ -34,6 +34,23 @@ pnpm i js-event-bus-lite
 
 ### 引入
 
+#### 在html页面中直接引入
+
+下载在自己的文件夹中，使用script src进行引入。[从GitHub上下载](dist/js-event-bus-lite.min.js)
+
+```html
+<body>
+  <div>Put your content here</div>
+
+  <script src="你的存放位置/js-event-bus-lite.min.js"></script>
+  <script>
+    const eventBus = new EventBus();
+  </script>
+</body>
+```
+
+#### 在 NodeJS、ES6 环境下引入（推荐）
+
 ```typescript
 import { EventBus } from 'js-event-bus-lite';
 ```

@@ -5,7 +5,6 @@
  * @license GPLv3
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EventBus = void 0;
 /**
  * 事件总线类
  * Event Bus Class
@@ -14,10 +13,10 @@ class EventBus {
     constructor() {
         const header = '[TS-Event-Hub]';
         this.logger = {
-            showLog: true,
-            log: (...args) => this.logger.showLog && console.log(header, ...args),
-            warn: (...args) => this.logger.showLog && console.warn(header, ...args),
-            error: (...args) => this.logger.showLog && console.error(header, ...args),
+            on: true,
+            log: (...args) => this.logger.on && console.log(header, ...args),
+            warn: (...args) => this.logger.on && console.warn(header, ...args),
+            error: (...args) => this.logger.on && console.error(header, ...args),
             throw: (message) => {
                 throw new Error(`${header} ${message}`);
             },
@@ -279,13 +278,13 @@ class EventBus {
      * 开启控制台日志
      */
     turnOnLog() {
-        this.logger.showLog = true;
+        this.logger.on = true;
     }
     /**
      * 关闭控制台日志
      */
     turnOffLog() {
-        this.logger.showLog = false;
+        this.logger.on = false;
     }
     /**
      * 在控制台打印整个eventMap，用来查看所有事件和其配置。
@@ -301,4 +300,4 @@ class EventBus {
         }
     }
 }
-exports.EventBus = EventBus;
+exports.default = EventBus;

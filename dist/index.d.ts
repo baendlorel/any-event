@@ -9,17 +9,12 @@
  */
 type EventHandler = (...args: any[]) => any;
 /**
- * 事件名类型，普通的string
- * Type of event name, it is just a normal string
- */
-type EventName = string;
-/**
  * 事件总线类
  * Event Bus Class
  */
-export declare class EventBus {
+export default class EventBus {
     /**
-     * 用来加日志的类
+     * 简易控制台，可以加日志
      * Logger with header '[TS-Event-Hub]'
      */
     private readonly logger;
@@ -65,14 +60,14 @@ export declare class EventBus {
      * @param handler 处理函数 dealer function
      * @param capacity 触发上限 trigger limit
      */
-    on(eventName: EventName, handler: EventHandler, capacity?: number): void;
+    on(eventName: string, handler: EventHandler, capacity?: number): void;
     /**
      * 注册只触发1次的事件，事件名称不能使用前面不带.的*。
      * Register an event that can only be triggered once. Do not use names with '*' not come after '.'.
      * @param eventName 事件名 name of the event
      * @param handler 处理函数 dealer function
      */
-    once(eventName: EventName, handler: EventHandler): void;
+    once(eventName: string, handler: EventHandler): void;
     /**
      * 需要注意，此处的eventName必须精确，和注册时的一样，不会进行通配。例如注册了'evt.*'的话，必须还使用'evt.*'才能注销它，用'evt.a'是不行的
      * Note that we must use the precise eventName as it was registered. Like we registered 'evt.*', and use 'evt.a' will not turn it off.
@@ -80,7 +75,7 @@ export declare class EventBus {
      * @param handler
      * @returns
      */
-    off(eventName: EventName, handler?: EventHandler): void;
+    off(eventName: string, handler?: EventHandler): void;
     /**
      * 清除事件配置映射
      * Clear all event-config maps
@@ -92,7 +87,7 @@ export declare class EventBus {
      * @param eventName
      * @param args
      */
-    emit(eventName: EventName, ...args: any): void;
+    emit(eventName: string, ...args: any): void;
     /**
      * 触发事件，事件名不能带有*号。
      * 如果真的要改变this指向，那么不要使用箭头函数。
@@ -102,7 +97,7 @@ export declare class EventBus {
      * @param thisArg
      * @param args
      */
-    emitWithThisArg(eventName: EventName, thisArg: any, ...args: any): void;
+    emitWithThisArg(eventName: string, thisArg: any, ...args: any): void;
     /**
      * 开启控制台日志
      */
