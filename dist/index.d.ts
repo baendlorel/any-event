@@ -12,7 +12,7 @@ type EventHandler = (...args: any[]) => any;
  * 事件总线类
  * Event Bus Class
  */
-export default class EventBus {
+export declare class EventBus {
     /**
      * 简易控制台，可以加日志
      * Logger with header '[TS-Event-Hub]'
@@ -113,4 +113,8 @@ export default class EventBus {
      */
     logEventMaps(forced?: boolean): void;
 }
+/**
+ * 获取一个EventBus实例
+ */
+export default function createEventBus(): EventBus;
 export {};

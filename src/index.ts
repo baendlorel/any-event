@@ -46,7 +46,7 @@ type EventConfig = {
  * 事件总线类
  * Event Bus Class
  */
-export default class EventBus {
+export class EventBus {
   /**
    * 简易控制台，可以加日志
    * Logger with header '[TS-Event-Hub]'
@@ -406,4 +406,11 @@ export default class EventBus {
       this.logger.log(`所有事件映射展示如下。All events lies below \n`, this.eventMap);
     }
   }
+}
+
+/**
+ * 获取一个EventBus实例
+ */
+export default function createEventBus() {
+  return new EventBus();
 }
