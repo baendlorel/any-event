@@ -4,9 +4,6 @@
  * @author Kasukabe Tsumugi <futami16237@gmail.com>
  * @license GPLv3
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EventBus = void 0;
-exports.default = createEventBus;
 /**
  * 事件总线类
  * Event Bus Class
@@ -302,10 +299,4 @@ class EventBus {
         }
     }
 }
-exports.EventBus = EventBus;
-/**
- * 获取一个EventBus实例
- */
-function createEventBus() {
-    return new EventBus();
-}
+module.exports = EventBus;

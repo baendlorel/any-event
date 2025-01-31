@@ -46,7 +46,7 @@ type EventConfig = {
  * 事件总线类
  * Event Bus Class
  */
-export class EventBus {
+class EventBus {
   /**
    * 简易控制台，可以加日志
    * Logger with header '[TS-Event-Hub]'
@@ -408,9 +408,4 @@ export class EventBus {
   }
 }
 
-/**
- * 获取一个EventBus实例
- */
-export default function createEventBus() {
-  return new EventBus();
-}
+export = EventBus;
