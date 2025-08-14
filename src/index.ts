@@ -1,35 +1,4 @@
 /**
- * Type of an event handler, it is just a normal function
- */
-type EventHandler = (...args: any[]) => any;
-
-/**
- * Event configuration, including name, handler function, trigger limit and whether handler is an arrow function
- */
-type EventConfig = {
-  /**
-   * Event name. Used to locate the key of eventMap
-   */
-  name: string;
-
-  /**
-   * Event handler. Whether it is an arrow function will affect binding of thisArg.
-   * @see comment of function 'emitWithThisArg'
-   */
-  handler: EventHandler;
-
-  /**
-   * Trigger limit, the handler will expire when it reaches this limit. Undefined means it can be triggered infinite times.
-   */
-  capacity: number | undefined;
-
-  /**
-   * Handler is whether an arrow function or not. Check it during registeration for further use.
-   */
-  isArrowFunctionHandler: boolean;
-};
-
-/**
  * # Usage
  * Create an instance using `new EventBus()`
  *
@@ -37,46 +6,22 @@ type EventConfig = {
  */
 export class EventBus {
   /**
-   * Logger with header '[TS-Event-Hub]'
-   */
-  private readonly logger: {
-    on: boolean;
-    log: (...args: any[]) => void;
-    warn: (...args: any[]) => void;
-    error: (...args: any[]) => void;
-    throw: (...args: any[]) => void;
-  };
-
-  /**
    * Map of all registered eventName and set of eventConfigs.
    */
   private readonly eventMap: Map<string, Set<EventConfig>>;
 
   constructor() {
-    const header = '[TS-Event-Hub]';
-    this.logger = {
-      on: true,
-      log: (...args: any[]) => this.logger.on && console.log(header, ...args),
-      warn: (...args: any[]) => this.logger.on && console.warn(header, ...args),
-      error: (...args: any[]) => this.logger.on && console.error(header, ...args),
-      throw: (message: string) => {
-        throw new Error(`${header} ${message}`);
-      },
-    };
     this.eventMap = new Map();
   }
 
   /**
-   * 判断一个函数是否为箭头函数。
    * Check if a function is an arrow function.
-   * @param fn
-   * @returns
+   * - if `fn` is not a function, return `null`
+   * - else returns whether `fn` is an arrow function
    */
-  private isArrowFunction(fn: any) {
+  private isArrowFunction(fn: any): boolean | null {
     if (typeof fn !== 'function') {
-      this.logger.throw(
-        'The parameter provided is not a function, cannot tell it is whether an arrow function'
-      );
+      return null;
     }
 
     // After some research, using new operator to distinct arrow functions from normal functions is the best approach.
@@ -95,7 +40,6 @@ export class EventBus {
       ) {
         return true;
       }
-      this.logger.error('isArrowFunction', 'fn:', fn);
       return false;
     }
   }
@@ -146,18 +90,18 @@ export class EventBus {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
-      this.logger.throw('eventName must be a string');
+      throw new TypeError('eventName must be a string');
     }
     if (typeof handler !== 'function') {
-      this.logger.throw('handler must be a function');
+      throw new TypeError('handler must be a function');
     }
     if (typeof capacity !== 'number' && typeof capacity !== 'undefined') {
-      this.logger.throw('capacity must be a number or undefined');
+      throw new TypeError('capacity must be a number or undefined');
     }
 
     // Prevent eventNames with '*' not come after '.'. e.g. '*evt' and 'evt*'
     if (eventName.match(/[^.]\*/g)) {
-      this.logger.throw(`eventName cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`);
+      throw new TypeError(`eventName cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`);
     }
 
     let configs: Set<EventConfig> | undefined = this.eventMap.get(eventName);
@@ -178,16 +122,14 @@ export class EventBus {
     }
 
     if (existConfig !== undefined) {
-      this.logger.warn(
-        `This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
-      );
+      // ! `This handler function is already existed under the event '${eventName}', it will not be registered again and only the capacity will be updated`
       existConfig.capacity = capacity;
     } else {
       configs.add({
         name: eventName,
         handler,
         capacity,
-        isArrowFunctionHandler: this.isArrowFunction(handler),
+        isArrowFunctionHandler: !!this.isArrowFunction(handler),
       });
     }
   }
@@ -220,15 +162,15 @@ export class EventBus {
   public off(eventName: string, handler?: EventHandler) {
     // paramter check
     if (typeof eventName !== 'string') {
-      this.logger.throw('eventName must be a string');
+      throw new TypeError('eventName must be a string');
     }
     if (typeof handler !== 'function' && typeof handler !== 'undefined') {
-      this.logger.throw('handler must be a function or undefined');
+      throw new TypeError('handler must be a function or undefined');
     }
 
     const configs = this.getExactConfigs(eventName);
     if (configs === undefined) {
-      this.logger.warn(`Event '${eventName}' has no matched config sets.`);
+      throw new TypeError(`Event '${eventName}' has no matched config sets.`);
       return;
     }
 
@@ -254,9 +196,6 @@ export class EventBus {
    * Clear all event-config maps
    */
   public clear() {
-    this.logger.log(
-      `清空所有事件，共${this.eventMap.size}个。Clear all ${this.eventMap.size} events`
-    );
     this.eventMap.clear();
   }
 
@@ -280,23 +219,19 @@ export class EventBus {
     // 参数检测
     // paramter check
     if (typeof eventName !== 'string') {
-      this.logger.throw('eventName必须是string。eventName must be a string');
+      throw new TypeError('eventName must be a string');
     }
 
     // 触发用的事件名称不能带星号
     // eventName cannot include *.
     if (eventName.includes('*')) {
-      this.logger.throw(
-        '触发用的eventName不能包含*。eventName used in emit function cannot include *'
-      );
+      throw new TypeError('eventName used in emit function cannot include *');
     }
 
     const call = thisArg
       ? (config: EventConfig) => {
           if (config.isArrowFunctionHandler) {
-            this.logger.warn(
-              '使用箭头函数时指定thisArgs可能无法达到预期效果！Appoint thisArg while using arrow function might not meet your expectaions!'
-            );
+            // '使用箭头函数时指定thisArgs可能无法达到预期效果！Appoint thisArg while using arrow function might not meet your expectaions!'
           }
           config.handler.call(thisArg, ...args);
         }
@@ -304,18 +239,8 @@ export class EventBus {
 
     const configSets: Set<EventConfig>[] = this.getConfigs(eventName);
 
-    if (configSets.length === 0) {
-      this.logger.warn(
-        `事件名'${eventName}'没有匹配的事件集合。Event '${eventName}' has no matched config sets.`
-      );
-    }
-
     for (const configs of configSets) {
       configs.forEach((c, v, s) => {
-        this.logger.log(
-          `以${eventName}触发了${c.name}。${eventName} triggered ${c.name}.`,
-          ...args
-        );
         call(c);
         if (c.capacity !== undefined) {
           c.capacity--;
@@ -329,26 +254,6 @@ export class EventBus {
           this.eventMap.delete(c.name);
         }
       });
-    }
-  }
-
-  public turnOnLog() {
-    this.logger.on = true;
-  }
-
-  public turnOffLog() {
-    this.logger.on = false;
-  }
-
-  /**
-   * Log eventMap in console to see all the event configs.
-   * @param forced If true, it can log even if the log is closed.
-   */
-  public logEventMaps(forced?: boolean) {
-    if (forced) {
-      console.log('[TS-Event-Hub]', `All events lies below \n`, this.eventMap);
-    } else {
-      this.logger.log(`All events lies below \n`, this.eventMap);
     }
   }
 }
