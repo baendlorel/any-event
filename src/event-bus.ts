@@ -151,27 +151,11 @@ export class EventBus {
    * @returns unique `id` of the registered identifier-listener entry
    * @throws invalid `identifier`
    */
-  public on(listener: Fn): number;
-  /**
-   * Register an event. **Anything** can be an event identifier
-   * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
-   *
-   * __WILDCARD_RULES__
-   *
-   * @param identifier name of the event
-   * @param listener will be called if matched
-   * @param capacity trigger limit, if omitted, it will be `Infinity`
-   * @returns unique `id` of the registered identifier-listener entry
-   * @throws invalid `identifier`
-   */
   public on(identifier: EventIdentifier, listener: Fn, capacity?: number): number;
   public on(...args: unknown[]): number {
-    expect(args.length >= 1, 'Not enough arguments!');
-    const [a, b, c] = args as [any, Fn, number];
+    expect(args.length >= 2, 'Not enough arguments!');
+    const [a, b, c] = args as [EventIdentifier, Fn, number];
     switch (args.length) {
-      case 1:
-        expect(typeof a === 'function', `'listener' must be a function`);
-        return this.register(a, a, Infinity);
       case 2:
         expect.identifier(a);
         expect(typeof b === 'function', `'listener' must be a function`);
@@ -195,31 +179,13 @@ export class EventBus {
    * @returns unique `id` of the registered identifier-listener entry
    * @throws invalid `identifier`
    */
-  public once(listener: Fn): number;
-  /**
-   * Register an event that can only be triggered once. **Anything** can be an event identifier
-   * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
-   *
-   * __WILDCARD_RULES__
-   *
-   * @param identifier name of the event
-   * @param listener will be called if matched
-   * @returns unique `id` of the registered identifier-listener entry
-   * @throws invalid `identifier`
-   */
   public once(identifier: EventIdentifier, listener: Fn): number;
   public once(...args: unknown[]): number {
-    expect(args.length >= 1, 'Not enough arguments!');
-    const [a, b] = args as [any, Fn];
-    switch (args.length) {
-      case 1:
-        expect(typeof a === 'function', `'listener' must be a function`);
-        return this.register(a, a, 1);
-      default:
-        expect.identifier(a);
-        expect(typeof b === 'function', `'listener' must be a function`);
-        return this.register(a, b, 1);
-    }
+    expect(args.length >= 2, 'Not enough arguments!');
+    const [a, b] = args as [EventIdentifier, Fn];
+    expect.identifier(a);
+    expect(typeof b === 'function', `'listener' must be a function`);
+    return this.register(a, b, 1);
   }
 
   /**
