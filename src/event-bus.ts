@@ -40,11 +40,27 @@ export class EventBus {
    */
   private id: number = 0;
 
+  private setEvent(event: EventName, configs: Map<Id, EventConfig>) {
+    if (typeof event === 'string') {
+      this.stringEvents.set(event, configs);
+    } else {
+      this.events.set(event, configs);
+    }
+  }
+
+  private getEvent(event: EventName) {
+    if (typeof event === 'string') {
+      return this.stringEvents.get(event);
+    } else {
+      return this.events.get(event);
+    }
+  }
+
   /**
    * Using wildcard to match all config sets of an event.
    * @param event
    */
-  private matchEvent(event: EventName): Map<number, EventConfig>[] {
+  private matchEvents(event: EventName): Map<number, EventConfig>[] {
     if (typeof event !== 'string') {
       const configs = this.events.get(event);
       return configs ? [configs] : [];
@@ -73,22 +89,6 @@ export class EventBus {
     return matched;
   }
 
-  private setEvent(event: EventName, configs: Map<Id, EventConfig>) {
-    if (typeof event === 'string') {
-      this.stringEvents.set(event, configs);
-    } else {
-      this.events.set(event, configs);
-    }
-  }
-
-  private getEvent(event: EventName) {
-    if (typeof event === 'string') {
-      return this.stringEvents.get(event);
-    } else {
-      return this.events.get(event);
-    }
-  }
-
   /**
    * Prevent events with '*' not come after '.'. e.g. '*event' and 'event*'
    * - only check string type event names
@@ -100,6 +100,8 @@ export class EventBus {
       throw new E(`'event' cannot use '*' not come after '.'. e.g.'*event' and 'event*'`);
     }
   }
+
+  // #region Registeration
 
   private register(event: EventName, listener: Fn, capacity: number): number {
     const configs = this.getEvent(event);
@@ -199,22 +201,23 @@ export class EventBus {
    * @param event must be exact
    * @returns `false` if deleted nothing, `true` otherwise.
    */
-  public off(event: EventName): boolean {
-    if (typeof event === 'string') {
-      const configs = this.stringEvents.get(event);
-      if (!configs) {
-        return false;
-      }
-      configs.forEach((_, id) => this.idMap.delete(id));
-      return true;
+  public off(event: EventName): void {
+    const maps = this.matchEvents(event);
+    const names = new Set<EventName>();
+    for (let i = 0; i < maps.length; i++) {
+      const map = maps[i];
+      map.forEach((_, id) => {
+        const name = this.idMap.get(id);
+        names.add(name);
+        this.idMap.delete(id);
+      });
     }
 
-    const configs = this.events.get(event);
-    if (!configs) {
-      return false;
-    }
-    configs.forEach((_, id) => this.idMap.delete(id));
-    return true;
+    // delete both, no side effects
+    names.forEach((name) => {
+      this.events.delete(name);
+      this.stringEvents.delete(name as string);
+    });
   }
 
   /**
@@ -236,6 +239,7 @@ export class EventBus {
     const b = idConfigMap.delete(id);
     return a || b;
   }
+  // #endregion
 
   /**
    * Clear all event-config maps
@@ -254,25 +258,27 @@ export class EventBus {
    * - `EmitResult` is an object takes 'id' as keys and 'result info' as values with `ids[]`(array) that records all included ids.
    */
   public emit(event: EventName, ...args: any): EmitResult | null {
-    const configs = this.getEvent(event);
-    if (!configs) {
+    const maps = this.matchEvents(event);
+    if (!maps) {
       return null;
     }
 
     const ids: number[] = [];
     const result: EmitResult = { ids };
-    configs.forEach((cfg, id) => {
-      ids.push(id);
-      result[id] = {
-        result: cfg.listener(...args),
-        event,
-        rest: --cfg.capacity,
-      };
-      if (cfg.capacity <= 0) {
-        configs.delete(id);
-        this.idMap.delete(id);
-      }
-    });
+    for (let i = 0; i < maps.length; i++) {
+      maps[i].forEach((cfg, id) => {
+        ids.push(id);
+        result[id] = {
+          result: cfg.listener(...args),
+          event: this.idMap.get(id),
+          rest: --cfg.capacity,
+        };
+        if (cfg.capacity <= 0) {
+          maps[i].delete(id);
+          this.idMap.delete(id);
+        }
+      });
+    }
 
     return result;
   }
