@@ -20,11 +20,18 @@ export class EventBus {
   }
 
   /**
-   * Map of all registered evt and set of eventConfigs.
+   * Map of string named events
    */
   private readonly stringEvents = new Map<string, Map<Id, EventConfig>>();
-  private readonly numberSymbolEvents = new Map<number | symbol, Map<Id, EventConfig>>();
 
+  /**
+   * Map of all other events
+   */
+  private readonly events = new Map<NonStringEventName, Map<Id, EventConfig>>();
+
+  /**
+   * Map of id to event name
+   */
   private readonly idMap = new Map<Id, EventName>();
 
   /**
@@ -33,25 +40,26 @@ export class EventBus {
   private id: number = 0;
 
   /**
-   * Using wildcard to match all config sets of an evt.
-   * @param evt
+   * Using wildcard to match all config sets of an event.
+   * @param event
    */
-  private getConfigs(evt: EventName): EventConfig[][] {
+  private getConfigs(event: EventName): EventConfig[][] {
+    // todo 重写通配符
     const matchedConfigs: EventConfig[][] = [];
     for (const en of this.stringEvents.keys()) {
-      // evt is checked during the registration, here we only consider names end with '.*' or includes '.*.'
+      // event is checked during the registration, here we only consider names end with '.*' or includes '.*.'
       if (en.includes('.*')) {
         const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
         const reg = new RegExp(t, 'g');
-        const match = evt.match(reg);
+        const match = event.match(reg);
 
         // Avoid match only part of the name
-        if (match && match[0] === evt) {
+        if (match && match[0] === event) {
           // for of .keys() garuantees its existance
           const c = this.stringEvents.get(en)!;
           matchedConfigs.push(c);
         }
-      } else if (en === evt) {
+      } else if (en === event) {
         const c = this.stringEvents.get(en)!;
         matchedConfigs.push(c);
       }
@@ -59,19 +67,19 @@ export class EventBus {
     return matchedConfigs;
   }
 
-  private setEvent(evt: EventName, configs: Map<Id, EventConfig>) {
-    if (typeof evt === 'string') {
-      this.stringEvents.set(evt, configs);
+  private setEvent(event: EventName, configs: Map<Id, EventConfig>) {
+    if (typeof event === 'string') {
+      this.stringEvents.set(event, configs);
     } else {
-      this.numberSymbolEvents.set(evt, configs);
+      this.events.set(event, configs);
     }
   }
 
-  private getEvent(evt: EventName) {
-    if (typeof evt === 'string') {
-      return this.stringEvents.get(evt);
+  private getEvent(event: EventName) {
+    if (typeof event === 'string') {
+      return this.stringEvents.get(event);
     } else {
-      return this.numberSymbolEvents.get(evt);
+      return this.events.get(event);
     }
   }
 
@@ -87,28 +95,23 @@ export class EventBus {
 
   /**
    * Register an event. Do not use names with '*' not come after '.'.
-   * @param evt name of the event
+   * @param event name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit
    * @returns an automically increased `id` of the registered listener
    */
-  private register(evt: EventName, listener: Fn, capacity: number = NotProvided as any): number {
-    // paramter check
-    if (typeof evt !== 'string' && typeof evt !== 'number' && typeof evt !== 'symbol') {
-      throw new TypeError(`'evt' must be a string/number/symbol`);
-    }
-
+  private register(event: EventName, listener: Fn, capacity: number = NotProvided as any): number {
     if (typeof listener !== 'function') {
       throw new TypeError(`'listener' must be a function`);
     }
 
-    // Prevent evts with '*' not come after '.'. e.g. '*evt' and 'evt*'
-    if (typeof evt === 'string' && evt.match(/[^.]\*/g)) {
-      throw new TypeError(`evt cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`);
+    // Prevent events with '*' not come after '.'. e.g. '*event' and 'event*'
+    if (typeof event === 'string' && event.match(/[^.]\*/g)) {
+      throw new TypeError(`event cannot use '*' not come after '.'. e.g.'*event' and 'event*'`);
     }
 
     capacity = this.normalizeCapacity(capacity);
-    const configs = this.getEvent(evt);
+    const configs = this.getEvent(event);
 
     const newId = this.id++;
     const entry: EventConfig = {
@@ -121,43 +124,43 @@ export class EventBus {
     } else {
       const newConfig = new Map<Id, EventConfig>();
       newConfig.set(newId, entry);
-      this.setEvent(evt, newConfig);
+      this.setEvent(event, newConfig);
     }
 
-    this.idMap.set(newId, evt);
+    this.idMap.set(newId, event);
 
     return newId;
   }
 
   /**
    * Register an event. Do not use names with '*' not come after '.'.
-   * @param evt name of the event
+   * @param event name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit
-   * @throws if `evt` has '*' not come after '.'.
+   * @throws if `event` has '*' not come after '.'.
    */
-  public on(evt: EventName, listener: Fn, capacity: number = NotProvided as any) {
-    return this.register(evt, listener, capacity);
+  public on(event: EventName, listener: Fn, capacity: number = NotProvided as any) {
+    return this.register(event, listener, capacity);
   }
 
   /**
    * Register an event that can only be triggered once.
-   * @param evt name of the event
+   * @param event name of the event
    * @param listener will be called if matched
-   * @throws if `evt` has '*' not come after '.'.
+   * @throws if `event` has '*' not come after '.'.
    */
-  public once(evt: EventName, listener: Fn) {
-    return this.register(evt, listener, 1);
+  public once(event: EventName, listener: Fn) {
+    return this.register(event, listener, 1);
   }
 
   /**
-   * Remove the listener of an evt, or all listeners of an evt if listener is omitted
-   * @param evt must be exact
+   * Remove the listener of an event, or all listeners of an event if listener is omitted
+   * @param event must be exact
    * @returns `false` if deleted nothing, `true` otherwise.
    */
-  public off(evt: EventName): boolean {
-    if (typeof evt === 'string') {
-      const configs = this.stringEvents.get(evt);
+  public off(event: EventName): boolean {
+    if (typeof event === 'string') {
+      const configs = this.stringEvents.get(event);
       if (!configs) {
         return false;
       }
@@ -165,7 +168,7 @@ export class EventBus {
       return true;
     }
 
-    const configs = this.numberSymbolEvents.get(evt);
+    const configs = this.events.get(event);
     if (!configs) {
       return false;
     }
@@ -179,11 +182,11 @@ export class EventBus {
    * @returns `false` if removed nothing
    */
   public removeListener(id: number): boolean {
-    const evt = this.idMap.get(id);
-    if (evt === undefined) {
+    const event = this.idMap.get(id);
+    if (event === undefined) {
       return false;
     }
-    const idConfigMap = this.getEvent(evt);
+    const idConfigMap = this.getEvent(event);
     if (idConfigMap === undefined) {
       return false;
     }
@@ -203,21 +206,22 @@ export class EventBus {
 
   /**
    * Trigger an event by name. Not allow to use names includes '*'.
-   * @param evt
+   * @param event
    * @param args
    */
-  public emit(evt: EventName, ...args: any): EmitResult[] | null {
-    const configs = this.getEvent(evt);
+  public emit(event: EventName, ...args: any): EmitResult[] | null {
+    const configs = this.getEvent(event);
     if (!configs) {
       return null;
     }
 
+    // todo 这里也许更适合做成一个空对象，以id为键，结果配置为值
     const result: EmitResult[] = [];
     configs.forEach((cfg, id) => {
       result.push({
         result: cfg.listener(...args),
         id,
-        evt,
+        event,
         rest: --cfg.capacity,
       });
       if (cfg.capacity <= 0) {
