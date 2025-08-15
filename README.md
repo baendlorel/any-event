@@ -1,247 +1,93 @@
-# js-event-bus-lite
+<p align="center">
+  <img src="https://github.com/baendlorel/any-event/releases/download/assets/any-event.png" alt="any-event logo" width="240" />
+</p>
 
-这是一个适用于 JavaScript 和 TypeScript 的全局事件总线仓库。
+A lightweight, flexible event bus for JavaScript/TypeScript. Supports any type of event identifier, wildcard event names, and listener capacity control. Powered by `singleton-pattern`.
 
-This is an event hus module for both JavaScript and TypeScript.
+---
 
-## 文档语言 Document Language
+## Installation
 
-[简体中文](README.md) —— 当前语言
-
-[English](readme/README_en.md)
-
-## 安装
-
-### 使用 npm
-
-```shell
-npm i js-event-bus-lite
+```bash
+pnpm add any-event
+# or
+npm install any-event
 ```
 
-### 使用 yarn
+## Usage
 
-```shell
-yarn add js-event-bus-lite
-```
+```ts
+import { eventBus } from 'any-event';
 
-### 使用 pnpm
-
-```shell
-pnpm i js-event-bus-lite
-```
-
-## 使用方法
-
-### 引入
-
-#### 在 html 页面中直接引入
-
-下载在自己的文件夹中，使用 script src 进行引入。[从 GitHub 上下载](dist/js-event-bus-lite.min.js)
-
-```html
-<body>
-  <div>Put your content here</div>
-
-  <script src="你的存放位置/js-event-bus-lite.min.js"></script>
-  <script>
-    const eventBus = new EventBus();
-  </script>
-</body>
-```
-
-#### 在 NodeJS、ES6 环境下引入（推荐）
-
-```typescript
-import EventBus from 'js-event-bus-lite';
-```
-
-或者
-
-```typescript
-const EventBus = require('js-event-bus-lite');
-```
-
-### 创建实例
-
-```typescript
-const bus = new EventBus();
-```
-
-### 基本使用
-
-#### 注册事件
-
-capacity 表示该事件限定触发的次数，超过后不会再触发。如果没有设置 capacity，则可以无限次触发。
-
-```typescript
-bus.on(eventName: string, handler: Function, capacity?: number);
-```
-
-只能被触发 1 次的事件，等价于 bus.on(eventName, handler, 1)。
-
-```typescript
-bus.once(eventName: string, handler: Function);
-```
-
-#### 触发事件
-
-可加参数。**事件名称不能含有 `*`号。**
-
-```typescript
-bus.emit(eventName: string, ...args: any);
-```
-
-#### 注销事件
-
-注销事件和其对应的所有 handler，如果指定 handler 则只注销此事件下的特定 handler。
-注意！注销事件**不会进行通配符匹配**，必须使用和注册的时候一样的事件名。
-_例如：注册用“evt.”，那么注销也要用“evt.”，用“evt.a”是不行的。_
-
-```typescript
-bus.off(eventName: string, handler?: Function);
-```
-
-#### 清空所有事件
-
-```typescript
-bus.clear();
-```
-
-#### 例子
-
-用事件名和处理函数来注册事件
-
-```typescript
-bus.on('evt', () => {
-  console.log('evt triggered');
+// Register a listener
+eventBus.on('user.login', (user) => {
+  console.log('User logged in:', user);
 });
 
-// 触发事件
-bus.emit('evt');
-// output: evt triggered
+// Emit an event
+eventBus.emit('user.login', { name: 'Alice' });
+
+// Wildcard support
+eventBus.on('user.*', () => console.log('Any user event!'));
+eventBus.emit('user.logout'); // triggers wildcard
 ```
 
-传递参数的情形
+## API
 
-```typescript
-bus.on('evt', (arg1, arg2) => {
-  console.log({ arg1, arg2 });
-});
+### `eventBus.on(identifier, listener, capacity?)`
 
-bus.emit('evt', '参数1', '参数2');
-// output: { arg1: '参数1', arg2: '参数2' }
+Register a listener for an event. `identifier` can be any value. `capacity` (optional) limits how many times the listener can be triggered.
+
+### `eventBus.once(identifier, listener)`
+
+Register a listener that will be triggered only once.
+
+### `eventBus.off(identifier)`
+
+Remove all listeners for the given event identifier.
+
+### `eventBus.removeListener(id)`
+
+Remove a specific listener by its id (returned from `on`/`once`).
+
+### `eventBus.emit(identifier, ...args)`
+
+Trigger an event. Returns `null` if no listener is found, or an object with results and remaining capacity.
+
+### Wildcard Rules
+
+1. `*` matches a single segment (e.g. `user.*` matches `user.login`, not `user.profile.update`)
+2. `**` matches multiple segments (e.g. `user.**` matches `user.login`, `user.profile.update`, `user.settings.privacy.change`, and `user` itself)
+3. Cannot use both `**` and `*` in the same identifier
+4. Cannot use more than 2 `*`s, like `***` or more
+5. Cannot starts or ends with `.`
+6. Mixed: `user.*.settings` matches `user.admin.settings`, `user.guest.settings`
+7. Only registration (on/once) supports wildcards; emit must use concrete event names
+
+## Types
+
+```ts
+type Fn = (...args: unknown[]) => unknown;
+interface EventConfig {
+  listener: Fn;
+  capacity: number;
+}
+interface EmitResultValue {
+  identifier: unknown;
+  result: unknown;
+  rest: number;
+}
+interface EmitResult {
+  ids: number[];
+  [key: number]: EmitResultValue;
+}
 ```
 
-指定次数的情形
+## Author
 
-```typescript
-let count = 0;
-bus.on(
-  'evt',
-  () => {
-    count++;
-    console.log('count', count);
-  },
-  3
-);
+KasukabeTsumugi  
+futami16237@gmail.com
 
-bus.emit('evt');
-bus.emit('evt');
-bus.emit('evt');
-// 触发3次后，handler已经自动注销
+---
 
-// 再调用已经不再会触发
-bus.emit('evt');
-
-/* output:
-count 1
-count 2
-count 3
-*/
-```
-
-### 进阶使用
-
-#### 绑定 thisArg
-
-此时推荐使用普通函数，不要使用箭头函数。（如果使用会触发控制台警告）
-
-与 emit 不同之处在于第二个参数是 thisArg。
-
-```typescript
-bus.emitWithThisArg(eventName: string, thisArg: any, ...args: any);
-```
-
-#### 例子
-
-```typescript
-// 不要使用箭头函数
-const handler = function (arg) {
-  console.log(this.a + arg.b);
-};
-
-bus.on('evt', handler);
-
-bus.emitWithThisArg('evt', { a: 3 }, { b: 2 });
-// output: 5
-```
-
-#### 通配符事件名
-
-支持使用通配符 `*`来注册事件，需要使用 `a.*`或者 `a.*.a`这样的格式来指定事件名称。其中 `*`可以匹配任何除了 `*`和 `.`以外的字符。
-
-**请不要使用类似于 `*.*`或 `*evt`这样的名称！** 这样的名称也许能精确匹配但不属于通配范围，不一定能达到你期望的效果
-
-```typescript
-bus.on('evt.*', () => {});
-```
-
-那么
-
-- `evt.3` **会**触发
-- `evt.name` **会**触发
-- `evt.` **不会**触发
-
-通配符会导致多重触发，例如我们注册如下两个事件
-
-```typescript
-bus.on('evt.*.*', () => {}); // 第1个事件
-bus.on('evt.3.*', () => {}); // 第2个事件
-```
-
-那么
-
-- `evt.4.a` 只会触发**第一个**事件
-- `evt.3.a` **两个**都会触发
-
-#### 重复注册
-
-同一个名字的事件重复添加同一个函数时，不会重复注册事件，只会更新 capacity。
-
-此时会在控制台弹出 warn 警告。
-
-```typescript
-const handler = () => {};
-// 此时handler触发10次就会销毁
-bus.on('evt', handler, 10);
-
-// capacity会更新为undefined，从而handler可以无限次触发
-bus.on('evt', handler);
-```
-
-### Debug 时使用
-
-```typescript
-// 开启日志
-bus.turnOnLog();
-
-// 关闭日志
-bus.turnOffLog();
-
-// 打印所有事件和其handler。日志关闭时不会打印，但可以设置forced=true来强制打印
-bus.logEventMaps(forced?: boolean);
-```
-
-# License 许可
-
-GPLv3
+Enjoy! (づ｡◕‿‿◕｡)づ
