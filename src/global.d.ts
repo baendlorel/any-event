@@ -6,11 +6,8 @@ type Fn = (...args: unknown[]) => unknown;
 /**
  * Event configuration, including name, handler function, trigger limit and whether handler is an arrow function
  */
-type EventConfig = {
-  /**
-   * Event name. Used to locate the key of eventMap
-   */
-  name: string;
+interface EventConfig {
+  id: number;
 
   /**
    * Event handler. Whether it is an arrow function will affect binding of thisArg.
@@ -22,4 +19,18 @@ type EventConfig = {
    * Trigger limit, the handler will expire when it reaches this limit. Undefined means it can be triggered infinite times.
    */
   capacity: number;
-};
+}
+
+interface EmitResult {
+  /**
+   *
+   */
+  result: unknown;
+
+  evt: string;
+
+  /**
+   * Number of handlers that have expired and been removed.
+   */
+  expired: boolean;
+}

@@ -9,40 +9,48 @@ const NotProvided = Symbol('NotProvided');
  * __PKG_INFO__
  */
 export class EventBus {
-  static get instance() {
+  /**
+   * Returns a singleton instance of EventBus.
+   * - empowered by npm package `singleton-pattern`
+   * @see https://www.npmjs.com/package/singleton-patternc  (Yes, tbhis is my work too (づ｡◕‿‿◕｡)づ)
+   */
+  static get getInstance() {
     const EB = singletonify(EventBus);
     return new EB();
   }
 
   /**
-   * Map of all registered eventName and set of eventConfigs.
+   * Map of all registered evt and set of eventConfigs.
    */
-  private readonly eventMap: Map<string, EventConfig[]>;
+  private readonly eventMap = new Map<string, EventConfig[]>();
 
-  constructor() {
-    this.eventMap = new Map();
-  }
+  private readonly idListenerMap = new Map<number, Fn>();
 
   /**
-   * Using wildcard to match all config sets of an eventName.
-   * @param eventName
+   * Used to generate unique id for each event handler.
    */
-  private getConfigs(eventName: string): EventConfig[][] {
+  private id: number = 0;
+
+  /**
+   * Using wildcard to match all config sets of an evt.
+   * @param evt
+   */
+  private getConfigs(evt: string): EventConfig[][] {
     const matchedConfigs: EventConfig[][] = [];
     for (const en of this.eventMap.keys()) {
-      // eventName is checked during the registration, here we only consider names end with '.*' or includes '.*.'
+      // evt is checked during the registration, here we only consider names end with '.*' or includes '.*.'
       if (en.includes('.*')) {
         const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
         const reg = new RegExp(t, 'g');
-        const match = eventName.match(reg);
+        const match = evt.match(reg);
 
         // Avoid match only part of the name
-        if (match && match[0] === eventName) {
+        if (match && match[0] === evt) {
           // for of .keys() garuantees its existance
           const c = this.eventMap.get(en)!;
           matchedConfigs.push(c);
         }
-      } else if (en === eventName) {
+      } else if (en === evt) {
         const c = this.eventMap.get(en)!;
         matchedConfigs.push(c);
       }
@@ -51,11 +59,11 @@ export class EventBus {
   }
 
   /**
-   * Get the exact configs of an eventName.
-   * @param eventName
+   * Get the exact configs of an evt.
+   * @param evt
    */
-  private getExactConfigs(eventName: string): EventConfig[] | undefined {
-    return this.eventMap.get(eventName);
+  private getExactConfigs(evt: string): EventConfig[] | undefined {
+    return this.eventMap.get(evt);
   }
 
   private normalizeCapacity(capacity: number | typeof NotProvided): number {
@@ -70,28 +78,30 @@ export class EventBus {
 
   /**
    * Register an event. Do not use names with '*' not come after '.'.
-   * @param eventName name of the event
-   * @param handler
+   * @param evt name of the event
+   * @param handler will be called if matched
    * @param capacity trigger limit
+   * @returns an automically increased `id` of the registered handler
    */
-  private register(eventName: string, handler: Fn, capacity: number = NotProvided as any) {
+  private register(evt: string, handler: Fn, capacity: number = NotProvided as any): number {
     // paramter check
-    if (typeof eventName !== 'string') {
-      throw new TypeError('eventName must be a string');
+    if (typeof evt !== 'string') {
+      throw new TypeError(`'evt' must be a string`);
     }
     if (typeof handler !== 'function') {
-      throw new TypeError('handler must be a function');
+      throw new TypeError(`'handler' must be a function`);
     }
-    // Prevent eventNames with '*' not come after '.'. e.g. '*evt' and 'evt*'
-    if (eventName.match(/[^.]\*/g)) {
-      throw new TypeError(`eventName cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`);
+    // Prevent evts with '*' not come after '.'. e.g. '*evt' and 'evt*'
+    if (evt.match(/[^.]\*/g)) {
+      throw new TypeError(`evt cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`);
     }
 
     capacity = this.normalizeCapacity(capacity);
 
-    const configs = this.eventMap.get(eventName);
-    const entry = {
-      name: eventName,
+    const configs = this.eventMap.get(evt);
+
+    const entry: EventConfig = {
+      id: this.id++,
       handler,
       capacity,
     };
@@ -99,76 +109,58 @@ export class EventBus {
     if (configs) {
       configs.push(entry);
     } else {
-      this.eventMap.set(eventName, [entry]);
+      this.eventMap.set(evt, [entry]);
     }
+
+    this.idListenerMap.set(entry.id, handler);
+    return entry.id;
   }
 
   /**
    * Register an event. Do not use names with '*' not come after '.'.
-   * @param eventName name of the event
+   * @param evt name of the event
    * @param handler will be called if matched
    * @param capacity trigger limit
-   * @throws if `eventName` has '*' not come after '.'.
+   * @throws if `evt` has '*' not come after '.'.
    */
-  public on(eventName: string, handler: Fn, capacity?: number) {
-    this.register(eventName, handler, capacity);
+  public on(evt: string, handler: Fn, capacity: number = NotProvided as any) {
+    this.register(evt, handler, capacity);
   }
 
   /**
    * Register an event that can only be triggered once.
-   * @param eventName name of the event
+   * @param evt name of the event
    * @param handler will be called if matched
-   * @throws if `eventName` has '*' not come after '.'.
+   * @throws if `evt` has '*' not come after '.'.
    */
-  public once(eventName: string, handler: Fn) {
-    this.register(eventName, handler, 1);
+  public once(evt: string, handler: Fn) {
+    this.register(evt, handler, 1);
   }
 
   /**
-   * Remove the handler of an eventName, or all handlers of an eventName if handler is omitted
-   * @param eventName must be exact
-   * @param handler optional, if omitted, all handlers of this eventName will be removed
+   * Remove the handler of an evt, or all handlers of an evt if handler is omitted
+   * @param evt must be exact
    * @returns `false` if deleted nothing, `true` otherwise.
    */
-  public off(eventName: string, handler: Fn = NotProvided as any): boolean {
+  public off(evt: string): boolean {
     // paramter check
-    if (typeof eventName !== 'string') {
-      throw new TypeError('eventName must be a string');
-    }
-    if (typeof handler !== 'function' && handler !== NotProvided) {
-      throw new TypeError('handler must be a function or omitted');
+    if (typeof evt !== 'string') {
+      throw new TypeError(`'evt' must be a string`);
     }
 
-    const configs = this.getExactConfigs(eventName);
+    const configs = this.getExactConfigs(evt);
     if (configs === undefined) {
       return false;
     }
 
-    if (!handler) {
-      this.eventMap.delete(eventName);
-      return true;
-    }
-
-    // The register function has garuanteed that there will be no duplicated name-handler tuple.
-    for (let i = 0; i < configs.length; i++) {
-      if (configs[i].handler === handler) {
-        configs[i] = null as any;
-      }
-    }
-
-    const deleted = configs.filter((c) => c === null);
-    if (deleted.length === configs.length) {
-      return false;
-    }
-
-    if (deleted.length === 0) {
-      this.eventMap.delete(eventName);
-      return true;
-    }
-
-    this.eventMap.set(eventName, deleted);
-    return true;
+    return this.eventMap.delete(evt);
   }
+
+  /**
+   * `id` is returned by `on()` or `once()`
+   * @param id the id of the listener
+   */
+  public removeListener(id: number): boolean {}
 
   /**
    * Clear all event-config maps
@@ -179,21 +171,38 @@ export class EventBus {
 
   /**
    * Trigger an event by name. Not allow to use names includes '*'.
-   * @param eventName
+   * @param evt
    * @param args
    */
-  public emit(eventName: string, ...args: any) {
+  public emit(evt: string, ...args: any) {
     // paramter check
-    if (typeof eventName !== 'string') {
-      throw new TypeError('eventName must be a string');
+    if (typeof evt !== 'string') {
+      throw new TypeError('evt must be a string');
     }
 
-    // eventName cannot include *.
-    if (eventName.includes('*')) {
-      throw new TypeError('eventName used in emit function cannot include *');
+    // evt cannot include *.
+    if (evt.includes('*')) {
+      return;
     }
 
-    const configsArr: EventConfig[][] = this.getConfigs(eventName);
+    const configs = this.getExactConfigs(evt);
+
+    if (!configs) {
+      return [];
+    }
+
+    return configs.map((v) => {
+      const result = v.handler(...args);
+      v.capacity--;
+
+      return {
+        result,
+        evt,
+        expired: v.capacity <= 0,
+      };
+    });
+
+    const configsArr: EventConfig[][] = this.getConfigs(evt);
     for (const configs of configsArr) {
       configs.forEach((c, v, s) => {
         c.handler(...args);
