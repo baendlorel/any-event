@@ -10,3 +10,7 @@ export function expect(o: unknown, msg: string): asserts o {
     throw new E(msg);
   }
 }
+
+export const enum ErrMsg {
+  InvalidEventName = `When 'event' includes '*', there must be a '.' before or after it. e.g. 'user.*', '*.end'. not allowed: 'user*', 'eve*nt'`,
+}

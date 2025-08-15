@@ -1,5 +1,5 @@
 import { singletonify } from 'singleton-pattern';
-import { E, expect } from './common.js';
+import { E, ErrMsg, expect } from './common.js';
 
 /**
  * ## Usage
@@ -113,15 +113,31 @@ export class EventBus {
    * - not allowed: *user, user*, us*er
    */
   private expectEventName(event: EventName) {
-    if (typeof event === 'string') {
-      const notComeAfterDot = /[^.]\*/g.test(event);
-      const notStarAlphabet = /^\*[^.]/g.test(event);
-      if (notComeAfterDot) {
-        throw new E(`'event' cannot use '*' not come after '.'. e.g. 'event*'`);
+    if (typeof event !== 'string') {
+      return;
+    }
+    // rule: cannot start or end with '.'
+    if (event.startsWith('.') || event.endsWith('.')) {
+      throw new E(`'event' cannot start or end with '.'`);
+    }
+
+    // rule: must has '.' before or after '*'
+    const index = event.indexOf('*');
+    if (index === -1) {
+      return;
+    }
+    if (index === 0) {
+      if (event.length === 1) {
+        throw new E(`'event' cannot be '*'`);
       }
-      if (notStarAlphabet) {
-        throw new E(`'event' cannot be '*any'`);
+      if (event[index + 1] !== '.') {
+        throw new E(ErrMsg.InvalidEventName);
       }
+    }
+
+    // & Then index > 0
+    if (event[index - 1] !== '.' && event[index + 1] !== '.') {
+      throw new E(ErrMsg.InvalidEventName);
     }
   }
 
