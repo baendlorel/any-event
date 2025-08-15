@@ -32,6 +32,8 @@ export function expectEmitEventName(name: unknown) {
   }
 }
 
+const validIdentifiers = new Set<string>(['']);
+
 /**
  * When registering
  * - allowed: user.*, order.*
@@ -42,7 +44,7 @@ export function expectEventName(raw: EventIdentifier) {
     return;
   }
 
-  if (raw === '') {
+  if (validIdentifiers.has(raw)) {
     return;
   }
 
@@ -105,6 +107,8 @@ export function expectEventName(raw: EventIdentifier) {
       throw new E(ErrMsg.InvalidEventName);
     }
   }
+
+  validIdentifiers.add(raw);
 }
 
 export const enum ErrMsg {
