@@ -1,5 +1,5 @@
 import { singletonify } from 'singleton-pattern';
-import { expect, expectEventName } from './common.js';
+import { expect, expectEmitEventName, expectEventName, isSafeInteger } from './common.js';
 
 /**
  * ## Usage
@@ -131,29 +131,14 @@ export class EventBus {
   }
 
   /**
-   * Register an event. **Anything** can be an event identifier, including the `listener`
-   * @param listener will be called if matched
-   * @returns unique `id` of the registered identifier-listener entry
-   * @throws `identifier` has '*'
-   */
-  public on(listener: Fn): number;
-  /**
    * Register an event. **Anything** can be an event identifier
    * @param identifier name of the event
    * @param listener will be called if matched
+   * @param capacity trigger limit, if omitted, it will be `Infinity`
    * @returns unique `id` of the registered identifier-listener entry
-   * @throws `identifier` has '*'
+   * @throws invalid `identifier`
    */
-  public on(identifier: EventIdentifier, listener: Fn): number;
-  /**
-   * Register an event. **Anything** can be an event identifier
-   * @param identifier name of the event
-   * @param listener will be called if matched
-   * @param capacity trigger limit
-   * @returns unique `id` of the registered identifier-listener entry
-   * @throws `identifier` has '*'
-   */
-  public on(identifier: EventIdentifier, listener: Fn, capacity: number): number;
+  public on(identifier: EventIdentifier, listener: Fn, capacity?: number): number;
   public on(...args: unknown[]): number {
     expect(args.length >= 1, 'Not enough arguments!');
     const [a, b, c] = args as [any, Fn, number];
@@ -168,24 +153,17 @@ export class EventBus {
       default:
         expectEventName(a);
         expect(typeof b === 'function', `'listener' must be a function`);
-        expect(Number.isSafeInteger(c) && c > 0, `'capacity' must be a positive integer`);
+        expect(isSafeInteger(c) && c > 0, `'capacity' must be a positive integer`);
         return this.register(a, b, c);
     }
   }
 
   /**
-   * Register an event that can only be triggered once. **Anything** can be an event identifier, including the `listener`
-   * @param listener will be called if matched
-   * @returns unique `id` of the registered identifier-listener entry
-   * @throws if `identifier` has '*' not come after '.'.
-   */
-  public once(listener: Fn): number;
-  /**
    * Register an event that can only be triggered once. **Anything** can be an event identifier
    * @param identifier name of the event
    * @param listener will be called if matched
    * @returns unique `id` of the registered identifier-listener entry
-   * @throws if `identifier` has '*' not come after '.'.
+   * @throws invalid `identifier`
    */
   public once(identifier: EventIdentifier, listener: Fn): number;
   public once(...args: unknown[]): number {
@@ -203,27 +181,17 @@ export class EventBus {
   }
 
   /**
-   * Remove the listener of an event, or all listeners of an event if listener is omitted
-   * @param identifier must be exact
+   * Remove all listeners of an event
+   * @param identifier must be exact the same as registered
    * @returns the matched event identifiers
    */
-  public off(identifier: EventIdentifier): any[] {
-    const maps = this.matchEvents(identifier);
-    const names = new Set<EventIdentifier>();
-    for (let i = 0; i < maps.length; i++) {
-      const map = maps[i];
-      map.forEach((_, id) => {
-        names.add(this.idMap.get(id));
-        this.idMap.delete(id);
-      });
+  public off(identifier: EventIdentifier): boolean {
+    const map = this.getEvent(identifier);
+    if (!map) {
+      return false;
     }
-
-    // delete both, no side effects
-    names.forEach((name) => {
-      this.events.delete(name);
-      this.stringEvents.delete(name as string);
-    });
-    return [...names];
+    map.forEach((_, id) => this.idMap.delete(id));
+    return true;
   }
 
   /**
@@ -262,8 +230,10 @@ export class EventBus {
    * @returns
    * - `null` if no matched listener is found
    * - `EmitResult` is an object takes 'id' as keys and 'result info' as values with `ids[]`(array) that records all included ids.
+   * @throws invalid `identifier`
    */
   public emit(identifier: EventIdentifier, ...args: any): EmitResult | null {
+    expectEmitEventName(identifier);
     const maps = this.matchEvents(identifier);
     if (maps.length === 0) {
       return null;

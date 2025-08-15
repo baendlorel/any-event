@@ -1,9 +1,11 @@
-export class E extends Error {
+class E extends Error {
   constructor(message: string) {
     super(message);
     this.name = '__NAME__';
   }
 }
+
+export const isSafeInteger = Number.isSafeInteger;
 
 export function expect(o: unknown, msg: string): asserts o {
   if (!o) {
@@ -11,11 +13,10 @@ export function expect(o: unknown, msg: string): asserts o {
   }
 }
 
-// fixme 通配符（如 *、**）应该在注册（on/once）的时候的事件名里使用，用于订阅一类事件。
 /**
  * When emitting
- * - allowed: user.*, order.*
- * - not allowed: *user, user*, us*er, evt.***
+ * 1. name must not contain `*`
+ * 2. name must not start or end with `.`
  */
 export function expectEmitEventName(name: unknown) {
   if (typeof name !== 'string') {
@@ -33,8 +34,8 @@ export function expectEmitEventName(name: unknown) {
 
 /**
  * When registering
- * 1. name must not contain `*`
- * 2. name must not start or end with `.`
+ * - allowed: user.*, order.*
+ * - not allowed: *user, user*, us*er, evt.***
  */
 export function expectEventName(raw: EventIdentifier) {
   if (typeof raw !== 'string') {
