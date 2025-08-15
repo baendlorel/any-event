@@ -168,6 +168,24 @@ describe('EventBus', () => {
       expect(wildcardListener).toHaveBeenCalledWith('data');
       expect(result!.ids).toHaveLength(2);
     });
+
+    it('user.⭐⭐ matches user.login, user.profile.update, user.settings.privacy.change, and user itself', () => {
+      const listener = vi.fn();
+      bus.on('user.**', listener);
+
+      bus.emit('user.login', 'login');
+      bus.emit('user.profile.update', 'profile');
+      bus.emit('user.settings.privacy.change', 'privacy');
+      bus.emit('user', 'root');
+      bus.emit('userx', 'should not match');
+      bus.emit('userx.login', 'should not match');
+
+      expect(listener).toHaveBeenCalledTimes(4);
+      expect(listener).toHaveBeenCalledWith('login');
+      expect(listener).toHaveBeenCalledWith('profile');
+      expect(listener).toHaveBeenCalledWith('privacy');
+      expect(listener).toHaveBeenCalledWith('root');
+    });
   });
 
   describe('Error handling', () => {

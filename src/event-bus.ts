@@ -262,6 +262,13 @@ export class EventBus {
 
   /**
    * Trigger an event by name
+   *
+   * Wildcard matching rules:
+   * - `*` matches a single segment (e.g. `user.*` matches `user.login`, not `user.profile.update`)
+   * - `**` matches multiple segments (e.g. `user.**` matches `user.login`, `user.profile.update`, `user.settings.privacy.change`, and `user` itself)
+   * - Mixed: `user.*.settings` matches `user.admin.settings`, `user.guest.settings`
+   * - Only registration (on/once) supports wildcards; emit must use concrete event names
+   *
    * @param identifier name of the event, it can be anything
    * @param args args will be passed to the listener like `listener(...args)`
    * @returns
