@@ -1,5 +1,5 @@
 import { singletonify } from 'singleton-pattern';
-import { E, ErrMsg, expect } from './common.js';
+import { expect, expectEventName } from './common.js';
 
 /**
  * ## Usage
@@ -29,52 +29,52 @@ export class EventBus {
   private readonly events = new Map<NonStringEventName, Map<Id, EventConfig>>();
 
   /**
-   * Map of id to event name
+   * Map of id to event identifier
    */
-  private readonly idMap = new Map<Id, EventName>();
+  private readonly idMap = new Map<Id, EventIdentifier>();
 
   /**
    * Used to generate unique id for each event listener.
    */
   private id: number = 0;
 
-  private setEvent(event: EventName, configs: Map<Id, EventConfig>) {
-    if (typeof event === 'string') {
-      this.stringEvents.set(event, configs);
+  private setEvent(identifier: EventIdentifier, configs: Map<Id, EventConfig>) {
+    if (typeof identifier === 'string') {
+      this.stringEvents.set(identifier, configs);
     } else {
-      this.events.set(event, configs);
+      this.events.set(identifier, configs);
     }
   }
 
-  private getEvent(event: EventName) {
-    if (typeof event === 'string') {
-      return this.stringEvents.get(event);
+  private getEvent(identifier: EventIdentifier) {
+    if (typeof identifier === 'string') {
+      return this.stringEvents.get(identifier);
     } else {
-      return this.events.get(event);
+      return this.events.get(identifier);
     }
   }
 
   /**
    * Using wildcard to match all config sets of an event.
-   * @param event
+   * @param identifier
    */
-  private matchEvents(event: EventName): Map<number, EventConfig>[] {
-    if (typeof event !== 'string') {
-      const configs = this.events.get(event);
+  private matchEvents(identifier: EventIdentifier): Map<number, EventConfig>[] {
+    if (typeof identifier !== 'string') {
+      const configs = this.events.get(identifier);
       return configs ? [configs] : [];
     }
 
     const matched: Map<number, EventConfig>[] = [];
 
     // Check exact match first
-    const exactConfig = this.stringEvents.get(event);
+    const exactConfig = this.stringEvents.get(identifier);
     if (exactConfig) {
       matched.push(exactConfig);
     }
 
     // Check wildcard patterns
     for (const [pattern, configs] of this.stringEvents) {
-      if (pattern === event) continue; // already handled above
+      if (pattern === identifier) continue; // already handled above
 
       if (pattern.includes('*')) {
         let isMatch = false;
@@ -82,19 +82,19 @@ export class EventBus {
         if (pattern.endsWith('.**')) {
           // Multi-level wildcard: 'user.**' matches 'user.login', 'user.profile.update', etc.
           const prefix = pattern.slice(0, -3); // remove '.**'
-          isMatch = event === prefix || event.startsWith(prefix + '.');
+          isMatch = identifier === prefix || identifier.startsWith(prefix + '.');
         } else if (pattern.endsWith('.*')) {
           // Single-level wildcard: 'user.*' matches 'user.login', 'user.logout', but not 'user.profile.update'
           const prefix = pattern.slice(0, -1); // remove '*'
-          if (event.startsWith(prefix)) {
-            const suffix = event.slice(prefix.length);
+          if (identifier.startsWith(prefix)) {
+            const suffix = identifier.slice(prefix.length);
             isMatch = suffix.length > 0 && !suffix.includes('.');
           }
         } else if (pattern.includes('.*')) {
           // Mixed patterns: 'user.*.settings' matches 'user.admin.settings', 'user.guest.settings'
           const regex = pattern.replace(/\.\*\*/g, '(?:\\..*)?').replace(/\.\*/g, '\\.[^.]+');
           const regexPattern = new RegExp(`^${regex}$`);
-          isMatch = regexPattern.test(event);
+          isMatch = regexPattern.test(identifier);
         }
 
         if (isMatch) {
@@ -106,45 +106,10 @@ export class EventBus {
     return matched;
   }
 
-  /**
-   * Prevent events with '*' not come after '.'. e.g. '*event' and 'event*'
-   * - only check string type event names
-   * - allowed: user.*, order.*
-   * - not allowed: *user, user*, us*er
-   */
-  private expectEventName(event: EventName) {
-    if (typeof event !== 'string') {
-      return;
-    }
-    // rule: cannot start or end with '.'
-    if (event.startsWith('.') || event.endsWith('.')) {
-      throw new E(`'event' cannot start or end with '.'`);
-    }
-
-    // rule: must has '.' before or after '*'
-    const index = event.indexOf('*');
-    if (index === -1) {
-      return;
-    }
-    if (index === 0) {
-      if (event.length === 1) {
-        throw new E(`'event' cannot be '*'`);
-      }
-      if (event[index + 1] !== '.') {
-        throw new E(ErrMsg.InvalidEventName);
-      }
-    }
-
-    // & Then index > 0
-    if (event[index - 1] !== '.' && event[index + 1] !== '.') {
-      throw new E(ErrMsg.InvalidEventName);
-    }
-  }
-
   // #region Registeration
 
-  private register(event: EventName, listener: Fn, capacity: number): number {
-    const configs = this.getEvent(event);
+  private register(identifier: EventIdentifier, listener: Fn, capacity: number): number {
+    const configs = this.getEvent(identifier);
 
     const newId = this.id++;
     const entry: EventConfig = {
@@ -157,38 +122,38 @@ export class EventBus {
     } else {
       const newConfig = new Map<Id, EventConfig>();
       newConfig.set(newId, entry);
-      this.setEvent(event, newConfig);
+      this.setEvent(identifier, newConfig);
     }
 
-    this.idMap.set(newId, event);
+    this.idMap.set(newId, identifier);
 
     return newId;
   }
 
   /**
-   * Register an event. **Anything** can be an event name, including the `listener`
+   * Register an event. **Anything** can be an event identifier, including the `listener`
    * @param listener will be called if matched
    * @returns an automically increased `id` of the registered listener
-   * @throws if `event` has '*' not come after '.'.
+   * @throws `identifier` has '*'
    */
   public on(listener: Fn): number;
   /**
-   * Register an event. **Anything** can be an event name
-   * @param event name of the event
+   * Register an event. **Anything** can be an event identifier
+   * @param identifier name of the event
    * @param listener will be called if matched
    * @returns an automically increased `id` of the registered listener
-   * @throws if `event` has '*' not come after '.'.
+   * @throws `identifier` has '*'
    */
-  public on(event: EventName, listener: Fn): number;
+  public on(identifier: EventIdentifier, listener: Fn): number;
   /**
-   * Register an event. **Anything** can be an event name
-   * @param event name of the event
+   * Register an event. **Anything** can be an event identifier
+   * @param identifier name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit
    * @returns an automically increased `id` of the registered listener
-   * @throws if `event` has '*' not come after '.'.
+   * @throws `identifier` has '*'
    */
-  public on(event: EventName, listener: Fn, capacity: number): number;
+  public on(identifier: EventIdentifier, listener: Fn, capacity: number): number;
   public on(...args: unknown[]): number {
     expect(args.length >= 1, 'Not enough arguments!');
     const [a, b, c] = args as [any, Fn, number];
@@ -197,11 +162,11 @@ export class EventBus {
         expect(typeof a === 'function', `'listener' must be a function`);
         return this.register(a, a, Infinity);
       case 2:
-        this.expectEventName(a);
+        expectEventName(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         return this.register(a, b, Infinity);
       default:
-        this.expectEventName(a);
+        expectEventName(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         expect(Number.isSafeInteger(c) && c > 0, `'capacity' must be a positive integer`);
         return this.register(a, b, c);
@@ -209,20 +174,20 @@ export class EventBus {
   }
 
   /**
-   * Register an event that can only be triggered once. **Anything** can be an event name, including the `listener`
+   * Register an event that can only be triggered once. **Anything** can be an event identifier, including the `listener`
    * @param listener will be called if matched
    * @returns an automically increased `id` of the registered listener
-   * @throws if `event` has '*' not come after '.'.
+   * @throws if `identifier` has '*' not come after '.'.
    */
   public once(listener: Fn): number;
   /**
-   * Register an event that can only be triggered once. **Anything** can be an event name
-   * @param event name of the event
+   * Register an event that can only be triggered once. **Anything** can be an event identifier
+   * @param identifier name of the event
    * @param listener will be called if matched
    * @returns an automically increased `id` of the registered listener
-   * @throws if `event` has '*' not come after '.'.
+   * @throws if `identifier` has '*' not come after '.'.
    */
-  public once(event: EventName, listener: Fn): number;
+  public once(identifier: EventIdentifier, listener: Fn): number;
   public once(...args: unknown[]): number {
     expect(args.length >= 1, 'Not enough arguments!');
     const [a, b] = args as [any, Fn];
@@ -231,6 +196,7 @@ export class EventBus {
         expect(typeof a === 'function', `'listener' must be a function`);
         return this.register(a, a, 1);
       default:
+        expectEventName(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         return this.register(a, b, 1);
     }
@@ -238,17 +204,16 @@ export class EventBus {
 
   /**
    * Remove the listener of an event, or all listeners of an event if listener is omitted
-   * @param event must be exact
-   * @returns `false` if deleted nothing, `true` otherwise.
+   * @param identifier must be exact
+   * @returns the matched event identifiers
    */
-  public off(event: EventName): void {
-    const maps = this.matchEvents(event);
-    const names = new Set<EventName>();
+  public off(identifier: EventIdentifier): any[] {
+    const maps = this.matchEvents(identifier);
+    const names = new Set<EventIdentifier>();
     for (let i = 0; i < maps.length; i++) {
       const map = maps[i];
       map.forEach((_, id) => {
-        const name = this.idMap.get(id);
-        names.add(name);
+        names.add(this.idMap.get(id));
         this.idMap.delete(id);
       });
     }
@@ -258,6 +223,7 @@ export class EventBus {
       this.events.delete(name);
       this.stringEvents.delete(name as string);
     });
+    return [...names];
   }
 
   /**
@@ -266,11 +232,11 @@ export class EventBus {
    * @returns `false` if removed nothing
    */
   public removeListener(id: number): boolean {
-    const event = this.idMap.get(id);
-    if (event === undefined) {
+    const identifier = this.idMap.get(id);
+    if (identifier === undefined) {
       return false;
     }
-    const idConfigMap = this.getEvent(event);
+    const idConfigMap = this.getEvent(identifier);
     if (idConfigMap === undefined) {
       return false;
     }
@@ -291,14 +257,14 @@ export class EventBus {
 
   /**
    * Trigger an event by name
-   * @param event name of the event, it can be anything
+   * @param identifier name of the event, it can be anything
    * @param args args will be passed to the listener like `listener(...args)`
    * @returns
    * - `null` if no matched listener is found
    * - `EmitResult` is an object takes 'id' as keys and 'result info' as values with `ids[]`(array) that records all included ids.
    */
-  public emit(event: EventName, ...args: any): EmitResult | null {
-    const maps = this.matchEvents(event);
+  public emit(identifier: EventIdentifier, ...args: any): EmitResult | null {
+    const maps = this.matchEvents(identifier);
     if (maps.length === 0) {
       return null;
     }
@@ -310,7 +276,7 @@ export class EventBus {
         ids.push(id);
         result[id] = {
           result: cfg.listener(...args),
-          event: this.idMap.get(id),
+          identifier: this.idMap.get(id),
           rest: --cfg.capacity,
         };
         if (cfg.capacity <= 0) {

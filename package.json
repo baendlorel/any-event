@@ -5,7 +5,7 @@
 		"name": "KasukabeTsumugi",
 		"email": "futami16237@gmail.com"
 	},
-	"description": "Simple EventBus module for js/ts projects, support wildcards",
+	"description": "Anything can be the event identifier. Tis a simple EventBus module for js/ts projects, support wildcards",
 	"type": "module",
 	"exports": {
 		"import": "./dist/index.mjs",

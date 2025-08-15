@@ -6,9 +6,9 @@ type Fn = (...args: unknown[]) => unknown;
 type Id = number;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventName = unknown;
+type EventIdentifier = unknown;
 
-type NonStringEventName = Exclude<EventName, string>;
+type NonStringEventName = Exclude<EventIdentifier, string>;
 
 /**
  * Event configuration, including name, listener function, trigger limit and whether listener is an arrow function
@@ -28,9 +28,9 @@ interface EventConfig {
 
 interface EmitResultValue {
   /**
-   * Event name, it can be anything.
+   * Event identifier, it can be anything.
    */
-  event: EventName;
+  identifier: EventIdentifier;
 
   /**
    *
