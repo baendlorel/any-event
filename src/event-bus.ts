@@ -54,6 +54,14 @@ export class EventBus {
     }
   }
 
+  private deleteEvent(identifier: EventIdentifier) {
+    if (typeof identifier === 'string') {
+      this.stringEvents.delete(identifier);
+    } else {
+      this.events.delete(identifier);
+    }
+  }
+
   /**
    * Using wildcard to match all config sets of an event.
    * @param identifier
@@ -132,6 +140,17 @@ export class EventBus {
 
   /**
    * Register an event. **Anything** can be an event identifier
+   * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
+   * @param identifier name of the event
+   * @param listener will be called if matched
+   * @param capacity trigger limit, if omitted, it will be `Infinity`
+   * @returns unique `id` of the registered identifier-listener entry
+   * @throws invalid `identifier`
+   */
+  public on(listener: Fn): number;
+  /**
+   * Register an event. **Anything** can be an event identifier
+   * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
    * @param identifier name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit, if omitted, it will be `Infinity`
@@ -160,6 +179,16 @@ export class EventBus {
 
   /**
    * Register an event that can only be triggered once. **Anything** can be an event identifier
+   * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
+   * @param identifier name of the event
+   * @param listener will be called if matched
+   * @returns unique `id` of the registered identifier-listener entry
+   * @throws invalid `identifier`
+   */
+  public once(listener: Fn): number;
+  /**
+   * Register an event that can only be triggered once. **Anything** can be an event identifier
+   * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
    * @param identifier name of the event
    * @param listener will be called if matched
    * @returns unique `id` of the registered identifier-listener entry
@@ -185,12 +214,16 @@ export class EventBus {
    * @param identifier must be exact the same as registered
    * @returns the matched event identifiers
    */
-  public off(identifier: EventIdentifier): boolean {
+  public off(identifier: EventIdentifier): boolean;
+  public off(...args: [EventIdentifier]): boolean {
+    expect(args.length >= 1, 'Not enough arguments!');
+    const identifier = args[0];
     const map = this.getEvent(identifier);
     if (!map) {
       return false;
     }
     map.forEach((_, id) => this.idMap.delete(id));
+    this.deleteEvent(identifier);
     return true;
   }
 
@@ -200,6 +233,8 @@ export class EventBus {
    * @returns `false` if removed nothing
    */
   public removeListener(id: number): boolean {
+    expect(typeof id === 'number', `'id' must be a number`);
+
     const identifier = this.idMap.get(id);
     if (identifier === undefined) {
       return false;
@@ -216,6 +251,8 @@ export class EventBus {
   // #endregion
 
   /**
+   * ! **Use with CAUTION!**
+   *
    * Clear all event-config maps
    */
   public clear() {
@@ -232,7 +269,11 @@ export class EventBus {
    * - `EmitResult` is an object takes 'id' as keys and 'result info' as values with `ids[]`(array) that records all included ids.
    * @throws invalid `identifier`
    */
-  public emit(identifier: EventIdentifier, ...args: any): EmitResult | null {
+  public emit(identifier: EventIdentifier, ...args: any): EmitResult | null;
+  public emit(...args: any[]): EmitResult | null {
+    expect(args.length >= 1, 'Not enough arguments!');
+
+    const identifier = args.shift();
     expectEmitEventName(identifier);
     const maps = this.matchEvents(identifier);
     if (maps.length === 0) {
