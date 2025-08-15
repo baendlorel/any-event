@@ -6,7 +6,7 @@ type Fn = (...args: unknown[]) => unknown;
 type Id = number;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventName = any;
+type EventName = unknown;
 
 type NonStringEventName = Exclude<EventName, string>;
 

@@ -1,4 +1,5 @@
 import { singletonify } from 'singleton-pattern';
+import { E, expect } from './common.js';
 
 const NotProvided = Symbol('NotProvided');
 
@@ -94,22 +95,18 @@ export class EventBus {
   }
 
   /**
-   * Register an event. Do not use names with '*' not come after '.'.
-   * @param event name of the event
-   * @param listener will be called if matched
-   * @param capacity trigger limit
-   * @returns an automically increased `id` of the registered listener
+   * Prevent events with '*' not come after '.'. e.g. '*event' and 'event*'
+   * - only check string type event names
+   * - allowed: user.*, order.*
+   * - not allowed: *user, user*, us*er
    */
-  private register(event: EventName, listener: Fn, capacity: number = NotProvided as any): number {
-    if (typeof listener !== 'function') {
-      throw new TypeError(`'listener' must be a function`);
-    }
-
-    // Prevent events with '*' not come after '.'. e.g. '*event' and 'event*'
+  private expectEventName(event: EventName) {
     if (typeof event === 'string' && event.match(/[^.]\*/g)) {
-      throw new TypeError(`event cannot use '*' not come after '.'. e.g.'*event' and 'event*'`);
+      throw new E(`'event' cannot use '*' not come after '.'. e.g.'*event' and 'event*'`);
     }
+  }
 
+  private register(event: EventName, listener: Fn, capacity: number): number {
     capacity = this.normalizeCapacity(capacity);
     const configs = this.getEvent(event);
 
@@ -133,24 +130,74 @@ export class EventBus {
   }
 
   /**
-   * Register an event. Do not use names with '*' not come after '.'.
+   * Register an event. **Anything** can be an event name, including the `listener`
+   * @param listener will be called if matched
+   * @returns an automically increased `id` of the registered listener
+   * @throws if `event` has '*' not come after '.'.
+   */
+  public on(listener: Fn): number;
+  /**
+   * Register an event. **Anything** can be an event name
+   * @param event name of the event
+   * @param listener will be called if matched
+   * @returns an automically increased `id` of the registered listener
+   * @throws if `event` has '*' not come after '.'.
+   */
+  public on(event: EventName, listener: Fn): number;
+  /**
+   * Register an event. **Anything** can be an event name
    * @param event name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit
+   * @returns an automically increased `id` of the registered listener
    * @throws if `event` has '*' not come after '.'.
    */
-  public on(event: EventName, listener: Fn, capacity: number = NotProvided as any) {
-    return this.register(event, listener, capacity);
+  public on(event: EventName, listener: Fn, capacity: number): number;
+  public on(...args: unknown[]): number {
+    expect(args.length >= 1, 'Not enough arguments!');
+    const [a, b, c] = args as [any, Fn, number];
+    switch (args.length) {
+      case 1:
+        expect(typeof a === 'function', `'listener' must be a function`);
+        return this.register(a, a, Infinity);
+      case 2:
+        this.expectEventName(a);
+        expect(typeof b === 'function', `'listener' must be a function`);
+        return this.register(a, b, Infinity);
+      default:
+        this.expectEventName(a);
+        expect(typeof b === 'function', `'listener' must be a function`);
+        expect(Number.isSafeInteger(c) && c > 0, `'capacity' must be a positive integer`);
+        return this.register(a, b, c);
+    }
   }
 
   /**
-   * Register an event that can only be triggered once.
-   * @param event name of the event
+   * Register an event that can only be triggered once. **Anything** can be an event name, including the `listener`
    * @param listener will be called if matched
+   * @returns an automically increased `id` of the registered listener
    * @throws if `event` has '*' not come after '.'.
    */
-  public once(event: EventName, listener: Fn) {
-    return this.register(event, listener, 1);
+  public once(listener: Fn): number;
+  /**
+   * Register an event that can only be triggered once. **Anything** can be an event name
+   * @param event name of the event
+   * @param listener will be called if matched
+   * @returns an automically increased `id` of the registered listener
+   * @throws if `event` has '*' not come after '.'.
+   */
+  public once(event: EventName, listener: Fn): number;
+  public once(...args: unknown[]): number {
+    expect(args.length >= 1, 'Not enough arguments!');
+    const [a, b, c] = args as [any, Fn, number];
+    switch (args.length) {
+      case 1:
+        expect(typeof a === 'function', `'listener' must be a function`);
+        return this.register(a, a, 1);
+      default:
+        expect(typeof b === 'function', `'listener' must be a function`);
+        return this.register(a, b, 1);
+    }
   }
 
   /**
