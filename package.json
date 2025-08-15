@@ -1,5 +1,5 @@
 {
-	"name": "js-event-bus-lite",
+	"name": "event-bus-lite",
 	"version": "1.0.3",
 	"author": {
 		"name": "KasukabeTsumugi",
@@ -55,5 +55,8 @@
 		"typescript": "^5.9.2",
 		"vitest": "^3.2.4"
 	},
-	"license": "GPL-3.0-only"
+	"license": "GPL-3.0-only",
+	"dependencies": {
+		"singleton-pattern": "^1.1.1"
+	}
 }
