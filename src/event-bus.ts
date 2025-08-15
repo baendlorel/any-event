@@ -2,6 +2,8 @@ import { singletonify } from 'singleton-pattern';
 import { isSafeInteger } from './common.js';
 import { expect } from './expect.js';
 
+const nameMap = new WeakMap<EventBus, string>();
+
 /**
  * ## Usage
  * Create an instance using `new EventBus()`
@@ -12,11 +14,24 @@ export class EventBus {
   /**
    * Returns a singleton instance of EventBus.
    * - empowered by npm package `singleton-pattern`
-   * @see https://www.npmjs.com/package/singleton-patternc  (Yes, tbhis is my work too (づ｡◕‿‿◕｡)づ)
+   * @see https://www.npmjs.com/package/singleton-patternc  (Yes, this is my work too (づ｡◕‿‿◕｡)づ)
    */
   static getInstance() {
     const EB = singletonify(EventBus);
     return new EB();
+  }
+
+  constructor(name: string = 'AnyEvent') {
+    nameMap.set(this, name);
+  }
+
+  setName(name: string) {
+    expect(typeof name === 'string', `'name' must be a string`);
+    nameMap.set(this, name);
+  }
+
+  get name(): string {
+    return nameMap.get(this) || '[Anonymous AnyEvent]';
   }
 
   /**

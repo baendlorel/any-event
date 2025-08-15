@@ -30,6 +30,10 @@ eventBus.emit('user.login', { name: 'Alice' });
 // Wildcard support
 eventBus.on('user.*', () => console.log('Any user event!'));
 eventBus.emit('user.logout'); // triggers wildcard
+
+// Set the name of the eventBus
+eventBus.name; // 'AnyEvent'
+eventBus.setName('MyEventBus'); // eventBus.name is now 'MyEventBus'
 ```
 
 ## API
