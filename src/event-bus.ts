@@ -15,7 +15,7 @@ export class EventBus {
    * - empowered by npm package `singleton-pattern`
    * @see https://www.npmjs.com/package/singleton-patternc  (Yes, tbhis is my work too (づ｡◕‿‿◕｡)づ)
    */
-  static get getInstance() {
+  static getInstance() {
     const EB = singletonify(EventBus);
     return new EB();
   }
