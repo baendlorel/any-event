@@ -70,6 +70,10 @@ export function expectEventName(raw: EventIdentifier) {
     if (raw[doubleStarIndex - 1] !== '.') {
       throw new E(`When using '**', there must be a '.' before it.`);
     }
+
+    if (/[^*]\*[^*]/g.test(raw)) {
+      throw new E(`'**' and '*' cannot be used at the same time.`);
+    }
   }
 
   // normalize multiple '**' to single '*'

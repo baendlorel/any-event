@@ -91,4 +91,12 @@ describe('EventBus Wildcard', () => {
     expect(() => bus.on('order.**', vi.fn())).not.toThrow();
     expect(() => bus.on('*.end', vi.fn())).not.toThrow();
   });
+
+  it('should not allow user.⭐.settings.⭐⭐ as event name and cannot trigger', () => {
+    const listener = vi.fn();
+    expect(() => bus.on('user.*.settings.**', listener)).toThrow();
+    bus.emit('user.admin.settings.privacy', 'data');
+    bus.emit('user.guest.settings.privacy', 'data');
+    expect(listener).not.toHaveBeenCalled();
+  });
 });
