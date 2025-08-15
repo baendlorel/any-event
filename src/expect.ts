@@ -10,7 +10,7 @@ const enum ErrMsg {
 }
 
 class UntypedExpect extends Function {
-  private readonly validIdentifiers = new Set<string>(['']);
+  private readonly _validIdentifiers = new Set<string>(['']);
 
   constructor() {
     super('o', 'msg', `if (!o){const e=Error(msg);e.name='__NAME__';throw e;}`);
@@ -21,7 +21,7 @@ class UntypedExpect extends Function {
    * 1. name must not contain `*`
    * 2. name must not start or end with `.`
    */
-  emitIdentifier(name: unknown) {
+  _emitIdentifier(name: unknown) {
     if (typeof name !== 'string') {
       return;
     }
@@ -40,12 +40,12 @@ class UntypedExpect extends Function {
    * - allowed: user.*, order.*
    * - not allowed: *user, user*, us*er, evt.***
    */
-  identifier(raw: EventIdentifier) {
+  _identifier(raw: EventIdentifier) {
     if (typeof raw !== 'string') {
       return;
     }
 
-    if (this.validIdentifiers.has(raw)) {
+    if (this._validIdentifiers.has(raw)) {
       return;
     }
 
@@ -109,7 +109,7 @@ class UntypedExpect extends Function {
       }
     }
 
-    this.validIdentifiers.add(raw);
+    this._validIdentifiers.add(raw);
   }
 }
 

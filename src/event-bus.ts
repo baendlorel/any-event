@@ -37,44 +37,44 @@ export class EventBus {
   /**
    * Map of string named events
    */
-  private readonly stringEvents = new Map<string, Map<Id, EventConfig>>();
+  private readonly _stringEvents = new Map<string, Map<Id, EventConfig>>();
 
   /**
    * Map of all other events
    */
-  private readonly events = new Map<NonStringEventName, Map<Id, EventConfig>>();
+  private readonly _events = new Map<NonStringEventName, Map<Id, EventConfig>>();
 
   /**
    * Map of id to event identifier
    */
-  private readonly idMap = new Map<Id, EventIdentifier>();
+  private readonly _idMap = new Map<Id, EventIdentifier>();
 
   /**
    * Used to generate unique id for each event listener.
    */
-  private id: number = 0;
+  private _id: number = 0;
 
-  private setEvent(identifier: EventIdentifier, configs: Map<Id, EventConfig>) {
+  private _setEvent(identifier: EventIdentifier, configs: Map<Id, EventConfig>) {
     if (typeof identifier === 'string') {
-      this.stringEvents.set(identifier, configs);
+      this._stringEvents.set(identifier, configs);
     } else {
-      this.events.set(identifier, configs);
+      this._events.set(identifier, configs);
     }
   }
 
-  private getEvent(identifier: EventIdentifier) {
+  private _getEvent(identifier: EventIdentifier) {
     if (typeof identifier === 'string') {
-      return this.stringEvents.get(identifier);
+      return this._stringEvents.get(identifier);
     } else {
-      return this.events.get(identifier);
+      return this._events.get(identifier);
     }
   }
 
-  private deleteEvent(identifier: EventIdentifier) {
+  private _deleteEvent(identifier: EventIdentifier) {
     if (typeof identifier === 'string') {
-      this.stringEvents.delete(identifier);
+      this._stringEvents.delete(identifier);
     } else {
-      this.events.delete(identifier);
+      this._events.delete(identifier);
     }
   }
 
@@ -82,22 +82,22 @@ export class EventBus {
    * Using wildcard to match all config sets of an event.
    * @param identifier
    */
-  private matchEvents(identifier: EventIdentifier): Map<number, EventConfig>[] {
+  private _matchEvents(identifier: EventIdentifier): Map<number, EventConfig>[] {
     if (typeof identifier !== 'string') {
-      const configs = this.events.get(identifier);
+      const configs = this._events.get(identifier);
       return configs ? [configs] : [];
     }
 
     const matched: Map<number, EventConfig>[] = [];
 
     // Check exact match first
-    const exactConfig = this.stringEvents.get(identifier);
+    const exactConfig = this._stringEvents.get(identifier);
     if (exactConfig) {
       matched.push(exactConfig);
     }
 
     // Check wildcard patterns
-    for (const [pattern, configs] of this.stringEvents) {
+    for (const [pattern, configs] of this._stringEvents) {
       if (pattern === identifier) continue; // already handled above
 
       if (pattern.includes('*')) {
@@ -132,10 +132,10 @@ export class EventBus {
 
   // #region Registeration
 
-  private register(identifier: EventIdentifier, listener: Fn, capacity: number): number {
-    const configs = this.getEvent(identifier);
+  private _register(identifier: EventIdentifier, listener: Fn, capacity: number): number {
+    const configs = this._getEvent(identifier);
 
-    const newId = this.id++;
+    const newId = this._id++;
     const entry: EventConfig = {
       listener,
       capacity,
@@ -146,10 +146,10 @@ export class EventBus {
     } else {
       const newConfig = new Map<Id, EventConfig>();
       newConfig.set(newId, entry);
-      this.setEvent(identifier, newConfig);
+      this._setEvent(identifier, newConfig);
     }
 
-    this.idMap.set(newId, identifier);
+    this._idMap.set(newId, identifier);
 
     return newId;
   }
@@ -158,7 +158,7 @@ export class EventBus {
    * Register an event. **Anything** can be an event identifier
    * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
    *
-   * __WILDCARD_RULES__
+   * _WILDCARD_RULES_
    *
    * @param identifier name of the event
    * @param listener will be called if matched
@@ -172,14 +172,14 @@ export class EventBus {
     const [a, b, c] = args as [EventIdentifier, Fn, number];
     switch (args.length) {
       case 2:
-        expect.identifier(a);
+        expect._identifier(a);
         expect(typeof b === 'function', `'listener' must be a function`);
-        return this.register(a, b, Infinity);
+        return this._register(a, b, Infinity);
       default:
-        expect.identifier(a);
+        expect._identifier(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         expect(isSafeInteger(c) && c > 0, `'capacity' must be a positive integer`);
-        return this.register(a, b, c);
+        return this._register(a, b, c);
     }
   }
 
@@ -187,7 +187,7 @@ export class EventBus {
    * Register an event that can only be triggered once. **Anything** can be an event identifier
    * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
    *
-   * __WILDCARD_RULES__
+   * _WILDCARD_RULES_
    *
    * @param identifier name of the event
    * @param listener will be called if matched
@@ -198,9 +198,9 @@ export class EventBus {
   public once(...args: unknown[]): number {
     expect(args.length >= 2, 'Not enough arguments!');
     const [a, b] = args as [EventIdentifier, Fn];
-    expect.identifier(a);
+    expect._identifier(a);
     expect(typeof b === 'function', `'listener' must be a function`);
-    return this.register(a, b, 1);
+    return this._register(a, b, 1);
   }
 
   /**
@@ -212,12 +212,12 @@ export class EventBus {
   public off(...args: [EventIdentifier]): boolean {
     expect(args.length >= 1, 'Not enough arguments!');
     const identifier = args[0];
-    const map = this.getEvent(identifier);
+    const map = this._getEvent(identifier);
     if (!map) {
       return false;
     }
-    map.forEach((_, id) => this.idMap.delete(id));
-    this.deleteEvent(identifier);
+    map.forEach((_, id) => this._idMap.delete(id));
+    this._deleteEvent(identifier);
     return true;
   }
 
@@ -229,16 +229,16 @@ export class EventBus {
   public removeListener(id: number): boolean {
     expect(typeof id === 'number', `'id' must be a number`);
 
-    const identifier = this.idMap.get(id);
+    const identifier = this._idMap.get(id);
     if (identifier === undefined) {
       return false;
     }
-    const idConfigMap = this.getEvent(identifier);
+    const idConfigMap = this._getEvent(identifier);
     if (idConfigMap === undefined) {
       return false;
     }
 
-    const a = this.idMap.delete(id);
+    const a = this._idMap.delete(id);
     const b = idConfigMap.delete(id);
     return a || b;
   }
@@ -250,14 +250,14 @@ export class EventBus {
    * Clear all event-config maps
    */
   public clear() {
-    this.stringEvents.clear();
-    this.idMap.clear();
+    this._stringEvents.clear();
+    this._idMap.clear();
   }
 
   /**
    * Trigger an event by name
    *
-   * __WILDCARD_RULES__
+   * _WILDCARD_RULES_
    *
    * @param identifier name of the event, it can be anything
    * @param args args will be passed to the listener like `listener(...args)`
@@ -271,8 +271,8 @@ export class EventBus {
     expect(args.length >= 1, 'Not enough arguments!');
 
     const identifier = args.shift();
-    expect.emitIdentifier(identifier);
-    const maps = this.matchEvents(identifier);
+    expect._emitIdentifier(identifier);
+    const maps = this._matchEvents(identifier);
     if (maps.length === 0) {
       return null;
     }
@@ -284,12 +284,12 @@ export class EventBus {
         ids.push(id);
         result[id] = {
           result: cfg.listener(...args),
-          identifier: this.idMap.get(id),
+          identifier: this._idMap.get(id),
           rest: --cfg.capacity,
         };
         if (cfg.capacity <= 0) {
           maps[i].delete(id);
-          this.idMap.delete(id);
+          this._idMap.delete(id);
         }
       });
     }

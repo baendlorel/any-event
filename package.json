@@ -1,6 +1,6 @@
 {
 	"name": "wildcard-event",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"author": {
 		"name": "KasukabeTsumugi",
 		"email": "futami16237@gmail.com"
@@ -32,7 +32,7 @@
 		"test": "clear & vitest",
 		"lint": "oxlint .",
 		"cover": "clear & vitest --coverage",
-		"build": "rimraf dist && rollup -c"
+		"build": "rimraf dist && rollup -c && ls -lh dist/"
 	},
 	"devDependencies": {
 		"@babel/plugin-proposal-decorators": "^7.28.0",
