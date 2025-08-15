@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/baendlorel/any-event/releases/download/assets/any-event.png" alt="any-event logo" width="240" />
+  <img src="https://github.com/baendlorel/wildcard-event/releases/download/assets/wildcard-event.png" alt="wildcard-event logo" width="240" />
 </p>
 
 A lightweight, flexible event bus for JavaScript/TypeScript. Supports any type of event identifier, wildcard event names, and listener capacity control. Powered by `singleton-pattern`.
@@ -9,15 +9,15 @@ A lightweight, flexible event bus for JavaScript/TypeScript. Supports any type o
 ## Installation
 
 ```bash
-pnpm add any-event
+pnpm add wildcard-event
 # or
-npm install any-event
+npm install wildcard-event
 ```
 
 ## Usage
 
 ```ts
-import { eventBus } from 'any-event';
+import { eventBus } from 'wildcard-event';
 
 // Register a listener
 eventBus.on('user.login', (user) => {
@@ -32,7 +32,7 @@ eventBus.on('user.*', () => console.log('Any user event!'));
 eventBus.emit('user.logout'); // triggers wildcard
 
 // Set the name of the eventBus
-eventBus.name; // 'AnyEvent'
+eventBus.name; // 'WildcardEvent'
 eventBus.setName('MyEventBus'); // eventBus.name is now 'MyEventBus'
 ```
 

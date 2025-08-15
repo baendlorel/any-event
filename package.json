@@ -1,5 +1,5 @@
 {
-	"name": "any-event",
+	"name": "wildcard-event",
 	"version": "1.0.0",
 	"author": {
 		"name": "KasukabeTsumugi",
@@ -15,10 +15,10 @@
 	"files": [
 		"dist"
 	],
-	"homepage": "https://github.com/baendlorel/any-event#readme",
+	"homepage": "https://github.com/baendlorel/wildcard-event#readme",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/baendlorel/any-event"
+		"url": "https://github.com/baendlorel/wildcard-event"
 	},
 	"keywords": [
 		"JavaScript",

@@ -21,7 +21,7 @@ export class EventBus {
     return new EB();
   }
 
-  constructor(name: string = 'AnyEvent') {
+  constructor(name: string = '__NAME__') {
     nameMap.set(this, name);
   }
 
@@ -31,7 +31,7 @@ export class EventBus {
   }
 
   get name(): string {
-    return nameMap.get(this) || '[Anonymous AnyEvent]';
+    return nameMap.get(this) || '[Anonymous __NAME__]';
   }
 
   /**
