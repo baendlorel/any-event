@@ -1,8 +1,6 @@
 import { singletonify } from 'singleton-pattern';
 import { E, expect } from './common.js';
 
-const NotProvided = Symbol('NotProvided');
-
 /**
  * ## Usage
  * Create an instance using `new EventBus()`
@@ -66,26 +64,45 @@ export class EventBus {
       return configs ? [configs] : [];
     }
 
-    // todo 重写通配符
     const matched: Map<number, EventConfig>[] = [];
-    for (const en of this.stringEvents.keys()) {
-      // event is checked during the registration, here we only consider names end with '.*' or includes '.*.'
-      if (en.includes('.*')) {
-        const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
-        const reg = new RegExp(t, 'g');
-        const match = event.match(reg);
 
-        // Avoid match only part of the name
-        if (match && match[0] === event) {
-          // for of .keys() garuantees its existance
-          const c = this.stringEvents.get(en)!;
-          matched.push(c);
+    // Check exact match first
+    const exactConfig = this.stringEvents.get(event);
+    if (exactConfig) {
+      matched.push(exactConfig);
+    }
+
+    // Check wildcard patterns
+    for (const [pattern, configs] of this.stringEvents) {
+      if (pattern === event) continue; // already handled above
+
+      if (pattern.includes('*')) {
+        let isMatch = false;
+
+        if (pattern.endsWith('.**')) {
+          // Multi-level wildcard: 'user.**' matches 'user.login', 'user.profile.update', etc.
+          const prefix = pattern.slice(0, -3); // remove '.**'
+          isMatch = event === prefix || event.startsWith(prefix + '.');
+        } else if (pattern.endsWith('.*')) {
+          // Single-level wildcard: 'user.*' matches 'user.login', 'user.logout', but not 'user.profile.update'
+          const prefix = pattern.slice(0, -1); // remove '*'
+          if (event.startsWith(prefix)) {
+            const suffix = event.slice(prefix.length);
+            isMatch = suffix.length > 0 && !suffix.includes('.');
+          }
+        } else if (pattern.includes('.*')) {
+          // Mixed patterns: 'user.*.settings' matches 'user.admin.settings', 'user.guest.settings'
+          const regex = pattern.replace(/\.\*\*/g, '(?:\\..*)?').replace(/\.\*/g, '\\.[^.]+');
+          const regexPattern = new RegExp(`^${regex}$`);
+          isMatch = regexPattern.test(event);
         }
-      } else if (en === event) {
-        const c = this.stringEvents.get(en)!;
-        matched.push(c);
+
+        if (isMatch) {
+          matched.push(configs);
+        }
       }
     }
+
     return matched;
   }
 
@@ -96,8 +113,15 @@ export class EventBus {
    * - not allowed: *user, user*, us*er
    */
   private expectEventName(event: EventName) {
-    if (typeof event === 'string' && event.match(/[^.]\*/g)) {
-      throw new E(`'event' cannot use '*' not come after '.'. e.g.'*event' and 'event*'`);
+    if (typeof event === 'string') {
+      const notComeAfterDot = /[^.]\*/g.test(event);
+      const notStarAlphabet = /^\*[^.]/g.test(event);
+      if (notComeAfterDot) {
+        throw new E(`'event' cannot use '*' not come after '.'. e.g. 'event*'`);
+      }
+      if (notStarAlphabet) {
+        throw new E(`'event' cannot be '*any'`);
+      }
     }
   }
 
@@ -185,7 +209,7 @@ export class EventBus {
   public once(event: EventName, listener: Fn): number;
   public once(...args: unknown[]): number {
     expect(args.length >= 1, 'Not enough arguments!');
-    const [a, b, c] = args as [any, Fn, number];
+    const [a, b] = args as [any, Fn];
     switch (args.length) {
       case 1:
         expect(typeof a === 'function', `'listener' must be a function`);
@@ -259,7 +283,7 @@ export class EventBus {
    */
   public emit(event: EventName, ...args: any): EmitResult | null {
     const maps = this.matchEvents(event);
-    if (!maps) {
+    if (maps.length === 0) {
       return null;
     }
 
@@ -280,6 +304,6 @@ export class EventBus {
       });
     }
 
-    return result;
+    return result.ids.length === 0 ? null : result;
   }
 }
