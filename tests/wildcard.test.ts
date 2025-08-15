@@ -70,4 +70,25 @@ describe('EventBus Wildcard', () => {
     expect(listener).toHaveBeenCalledWith('privacy');
     expect(listener).toHaveBeenCalledWith('root');
   });
+
+  it('should throw error for invalid wildcard event names', () => {
+    expect(() => bus.on('*', vi.fn())).toThrow();
+    expect(() => bus.on('**', vi.fn())).toThrow();
+    expect(() => bus.on('user**', vi.fn())).toThrow();
+    expect(() => bus.on('**.user', vi.fn())).toThrow();
+    expect(() => bus.on('user.**.settings', vi.fn())).toThrow();
+    expect(() => bus.on('user*', vi.fn())).toThrow();
+    expect(() => bus.on('us*er', vi.fn())).toThrow();
+    expect(() => bus.on('.user.*', vi.fn())).toThrow();
+    expect(() => bus.on('user.*.', vi.fn())).toThrow();
+  });
+
+  it('should allow valid wildcard event names', () => {
+    expect(() => bus.on('user.*', vi.fn())).not.toThrow();
+    expect(() => bus.on('user.**', vi.fn())).not.toThrow();
+    expect(() => bus.on('user.*.settings', vi.fn())).not.toThrow();
+    expect(() => bus.on('order.*', vi.fn())).not.toThrow();
+    expect(() => bus.on('order.**', vi.fn())).not.toThrow();
+    expect(() => bus.on('*.end', vi.fn())).not.toThrow();
+  });
 });

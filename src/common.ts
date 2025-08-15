@@ -42,6 +42,10 @@ export function expectEventName(raw: EventIdentifier) {
     return;
   }
 
+  if (raw === '') {
+    return;
+  }
+
   // rule: cannot start or end with '.'
   if (raw.startsWith('.') || raw.endsWith('.')) {
     throw new E(`'identifier' cannot start or end with '.'`);
@@ -51,26 +55,51 @@ export function expectEventName(raw: EventIdentifier) {
     throw new E(`'identifier' cannot have more than two '*' in a row`);
   }
 
+  if (raw === '*' || raw === '**') {
+    throw new E(`'identifier' cannot be '*' or '**', it is meaningless`);
+  }
+
+  const doubleStarIndex = raw.indexOf('**');
+  if (doubleStarIndex !== -1) {
+    if (doubleStarIndex !== raw.length - 2) {
+      throw new E(`When using '**', it must be at the end of the identifier.`);
+    }
+
+    // & here length will not be 0(returned above), 1(indexOf** != -1), 2(!= **)
+    // & so length is at least 3
+    if (raw[doubleStarIndex - 1] !== '.') {
+      throw new E(`When using '**', there must be a '.' before it.`);
+    }
+  }
+
   // normalize multiple '**' to single '*'
   const name = raw.replace(/[\*]{2,}/g, '*');
 
   // rule: must has '.' before or after '*'
-  const index = name.indexOf('*');
-  if (index === -1) {
-    return;
-  }
-  if (index === 0) {
-    if (name.length === 1) {
-      throw new E(`'identifier' cannot be '*'`);
+  // & after assertions above, name could not be only '*' or '**' shrunk to '*'
+  // & if name contains '*', name.length must be at least 2
+  for (let index = 0; index < name.length; index++) {
+    if (name[index] !== '*') {
+      continue;
     }
-    if (name[index + 1] !== '.') {
+    if (index === 0) {
+      if (name[1] !== '.') {
+        throw new E(ErrMsg.InvalidEventName);
+      }
+      continue;
+    }
+
+    if (index === name.length - 1) {
+      if (name[name.length - 2] !== '.') {
+        throw new E(ErrMsg.InvalidEventName);
+      }
+      continue;
+    }
+
+    // & here, name.length is at least 3
+    if (name[index - 1] !== '.' && name[index + 1] !== '.') {
       throw new E(ErrMsg.InvalidEventName);
     }
-  }
-
-  // & Then index > 0
-  if (name[index - 1] !== '.' && name[index + 1] !== '.') {
-    throw new E(ErrMsg.InvalidEventName);
   }
 }
 
