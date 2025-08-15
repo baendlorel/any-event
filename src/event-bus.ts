@@ -1,5 +1,6 @@
 import { singletonify } from 'singleton-pattern';
-import { expect, expectEmitEventName, expectEventName, isSafeInteger } from './common.js';
+import { isSafeInteger } from './common.js';
+import { expect } from './expect.js';
 
 /**
  * ## Usage
@@ -141,6 +142,9 @@ export class EventBus {
   /**
    * Register an event. **Anything** can be an event identifier
    * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
+   *
+   * __WILDCARD_RULES__
+   *
    * @param identifier name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit, if omitted, it will be `Infinity`
@@ -151,6 +155,9 @@ export class EventBus {
   /**
    * Register an event. **Anything** can be an event identifier
    * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
+   *
+   * __WILDCARD_RULES__
+   *
    * @param identifier name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit, if omitted, it will be `Infinity`
@@ -166,11 +173,11 @@ export class EventBus {
         expect(typeof a === 'function', `'listener' must be a function`);
         return this.register(a, a, Infinity);
       case 2:
-        expectEventName(a);
+        expect.identifier(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         return this.register(a, b, Infinity);
       default:
-        expectEventName(a);
+        expect.identifier(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         expect(isSafeInteger(c) && c > 0, `'capacity' must be a positive integer`);
         return this.register(a, b, c);
@@ -180,6 +187,9 @@ export class EventBus {
   /**
    * Register an event that can only be triggered once. **Anything** can be an event identifier
    * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
+   *
+   * __WILDCARD_RULES__
+   *
    * @param identifier name of the event
    * @param listener will be called if matched
    * @returns unique `id` of the registered identifier-listener entry
@@ -189,6 +199,9 @@ export class EventBus {
   /**
    * Register an event that can only be triggered once. **Anything** can be an event identifier
    * - Specially, if only 1 argument is provided(and it is a function), it will be treated as both identifier and listener
+   *
+   * __WILDCARD_RULES__
+   *
    * @param identifier name of the event
    * @param listener will be called if matched
    * @returns unique `id` of the registered identifier-listener entry
@@ -203,7 +216,7 @@ export class EventBus {
         expect(typeof a === 'function', `'listener' must be a function`);
         return this.register(a, a, 1);
       default:
-        expectEventName(a);
+        expect.identifier(a);
         expect(typeof b === 'function', `'listener' must be a function`);
         return this.register(a, b, 1);
     }
@@ -263,11 +276,7 @@ export class EventBus {
   /**
    * Trigger an event by name
    *
-   * Wildcard matching rules:
-   * - `*` matches a single segment (e.g. `user.*` matches `user.login`, not `user.profile.update`)
-   * - `**` matches multiple segments (e.g. `user.**` matches `user.login`, `user.profile.update`, `user.settings.privacy.change`, and `user` itself)
-   * - Mixed: `user.*.settings` matches `user.admin.settings`, `user.guest.settings`
-   * - Only registration (on/once) supports wildcards; emit must use concrete event names
+   * __WILDCARD_RULES__
    *
    * @param identifier name of the event, it can be anything
    * @param args args will be passed to the listener like `listener(...args)`
@@ -281,7 +290,7 @@ export class EventBus {
     expect(args.length >= 1, 'Not enough arguments!');
 
     const identifier = args.shift();
-    expectEmitEventName(identifier);
+    expect.emitIdentifier(identifier);
     const maps = this.matchEvents(identifier);
     if (maps.length === 0) {
       return null;

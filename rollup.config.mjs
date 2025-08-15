@@ -50,7 +50,15 @@ const __PKG_INFO__ = `## About
  * @link ${pkg.repository.url}
  * @description ${pkg.description.replace(/\n/g, '\n * \n * ')}
  * @copyright Copyright (c) ${new Date().getFullYear()} ${pkg.author.name}. All rights reserved.`;
-
+const __WILDCARD_RULES__ = `**Wildcard matching rules**:
+   * - \`*\` matches a single segment (e.g. \`user.*\` matches \`user.login\`, not \`user.profile.update\`)
+   * - \`**\` matches multiple segments (e.g. \`user.**\` matches \`user.login\`, \`user.profile.update\`, \`user.settings.privacy.change\`, and \`user\` itself)
+   * - Cannot use both \`**\` and \`*\` in the same identifier
+   * - Cannot use more than 2 \`*\`s
+   * - Cannot starts or ends with \`.\`
+   * - Mixed: \`user.*.settings\` matches \`user.admin.settings\`, \`user.guest.settings\`
+   * - Only registration (on/once) supports wildcards; emit must use concrete event names
+`;
 /**
  * @type {import('@rollup/plugin-replace').RollupReplaceOptions}
  */
@@ -59,6 +67,7 @@ const replaceOpts = {
   values: {
     __NAME__,
     __PKG_INFO__,
+    __WILDCARD_RULES__,
   },
 };
 
