@@ -22,12 +22,13 @@ export class EventBus {
   /**
    * Map of all registered evt and set of eventConfigs.
    */
-  private readonly eventMap = new Map<string, EventConfig[]>();
+  private readonly stringEvents = new Map<string, Map<Id, EventConfig>>();
+  private readonly numberSymbolEvents = new Map<number | symbol, Map<Id, EventConfig>>();
 
-  private readonly idListenerMap = new Map<number, Fn>();
+  private readonly idMap = new Map<Id, EventName>();
 
   /**
-   * Used to generate unique id for each event handler.
+   * Used to generate unique id for each event listener.
    */
   private id: number = 0;
 
@@ -35,9 +36,9 @@ export class EventBus {
    * Using wildcard to match all config sets of an evt.
    * @param evt
    */
-  private getConfigs(evt: string): EventConfig[][] {
+  private getConfigs(evt: EventName): EventConfig[][] {
     const matchedConfigs: EventConfig[][] = [];
-    for (const en of this.eventMap.keys()) {
+    for (const en of this.stringEvents.keys()) {
       // evt is checked during the registration, here we only consider names end with '.*' or includes '.*.'
       if (en.includes('.*')) {
         const t = en.replace(/\.\*\./g, '.[^.]+.').replace(/\.\*$/g, '.[^.]+');
@@ -47,23 +48,31 @@ export class EventBus {
         // Avoid match only part of the name
         if (match && match[0] === evt) {
           // for of .keys() garuantees its existance
-          const c = this.eventMap.get(en)!;
+          const c = this.stringEvents.get(en)!;
           matchedConfigs.push(c);
         }
       } else if (en === evt) {
-        const c = this.eventMap.get(en)!;
+        const c = this.stringEvents.get(en)!;
         matchedConfigs.push(c);
       }
     }
     return matchedConfigs;
   }
 
-  /**
-   * Get the exact configs of an evt.
-   * @param evt
-   */
-  private getExactConfigs(evt: string): EventConfig[] | undefined {
-    return this.eventMap.get(evt);
+  private setEvent(evt: EventName, configs: Map<Id, EventConfig>) {
+    if (typeof evt === 'string') {
+      this.stringEvents.set(evt, configs);
+    } else {
+      this.numberSymbolEvents.set(evt, configs);
+    }
+  }
+
+  private getEvent(evt: EventName) {
+    if (typeof evt === 'string') {
+      return this.stringEvents.get(evt);
+    } else {
+      return this.numberSymbolEvents.get(evt);
+    }
   }
 
   private normalizeCapacity(capacity: number | typeof NotProvided): number {
@@ -79,94 +88,117 @@ export class EventBus {
   /**
    * Register an event. Do not use names with '*' not come after '.'.
    * @param evt name of the event
-   * @param handler will be called if matched
+   * @param listener will be called if matched
    * @param capacity trigger limit
-   * @returns an automically increased `id` of the registered handler
+   * @returns an automically increased `id` of the registered listener
    */
-  private register(evt: string, handler: Fn, capacity: number = NotProvided as any): number {
+  private register(evt: EventName, listener: Fn, capacity: number = NotProvided as any): number {
     // paramter check
-    if (typeof evt !== 'string') {
-      throw new TypeError(`'evt' must be a string`);
+    if (typeof evt !== 'string' && typeof evt !== 'number' && typeof evt !== 'symbol') {
+      throw new TypeError(`'evt' must be a string/number/symbol`);
     }
-    if (typeof handler !== 'function') {
-      throw new TypeError(`'handler' must be a function`);
+
+    if (typeof listener !== 'function') {
+      throw new TypeError(`'listener' must be a function`);
     }
+
     // Prevent evts with '*' not come after '.'. e.g. '*evt' and 'evt*'
-    if (evt.match(/[^.]\*/g)) {
+    if (typeof evt === 'string' && evt.match(/[^.]\*/g)) {
       throw new TypeError(`evt cannot use '*' not come after '.'. e.g.'*evt' and 'evt*'`);
     }
 
     capacity = this.normalizeCapacity(capacity);
+    const configs = this.getEvent(evt);
 
-    const configs = this.eventMap.get(evt);
-
+    const newId = this.id++;
     const entry: EventConfig = {
-      id: this.id++,
-      handler,
+      listener,
       capacity,
     };
 
     if (configs) {
-      configs.push(entry);
+      configs.set(newId, entry);
     } else {
-      this.eventMap.set(evt, [entry]);
+      const newConfig = new Map<Id, EventConfig>();
+      newConfig.set(newId, entry);
+      this.setEvent(evt, newConfig);
     }
 
-    this.idListenerMap.set(entry.id, handler);
-    return entry.id;
+    this.idMap.set(newId, evt);
+
+    return newId;
   }
 
   /**
    * Register an event. Do not use names with '*' not come after '.'.
    * @param evt name of the event
-   * @param handler will be called if matched
+   * @param listener will be called if matched
    * @param capacity trigger limit
    * @throws if `evt` has '*' not come after '.'.
    */
-  public on(evt: string, handler: Fn, capacity: number = NotProvided as any) {
-    this.register(evt, handler, capacity);
+  public on(evt: EventName, listener: Fn, capacity: number = NotProvided as any) {
+    return this.register(evt, listener, capacity);
   }
 
   /**
    * Register an event that can only be triggered once.
    * @param evt name of the event
-   * @param handler will be called if matched
+   * @param listener will be called if matched
    * @throws if `evt` has '*' not come after '.'.
    */
-  public once(evt: string, handler: Fn) {
-    this.register(evt, handler, 1);
+  public once(evt: EventName, listener: Fn) {
+    return this.register(evt, listener, 1);
   }
 
   /**
-   * Remove the handler of an evt, or all handlers of an evt if handler is omitted
+   * Remove the listener of an evt, or all listeners of an evt if listener is omitted
    * @param evt must be exact
    * @returns `false` if deleted nothing, `true` otherwise.
    */
-  public off(evt: string): boolean {
-    // paramter check
-    if (typeof evt !== 'string') {
-      throw new TypeError(`'evt' must be a string`);
+  public off(evt: EventName): boolean {
+    if (typeof evt === 'string') {
+      const configs = this.stringEvents.get(evt);
+      if (!configs) {
+        return false;
+      }
+      configs.forEach((_, id) => this.idMap.delete(id));
+      return true;
     }
 
-    const configs = this.getExactConfigs(evt);
-    if (configs === undefined) {
+    const configs = this.numberSymbolEvents.get(evt);
+    if (!configs) {
       return false;
     }
-
-    return this.eventMap.delete(evt);
+    configs.forEach((_, id) => this.idMap.delete(id));
+    return true;
   }
 
   /**
    * `id` is returned by `on()` or `once()`
    * @param id the id of the listener
+   * @returns `false` if removed nothing
    */
-  public removeListener(id: number): boolean {}
+  public removeListener(id: number): boolean {
+    const evt = this.idMap.get(id);
+    if (evt === undefined) {
+      return false;
+    }
+    const idConfigMap = this.getEvent(evt);
+    if (idConfigMap === undefined) {
+      return false;
+    }
+
+    const a = this.idMap.delete(id);
+    const b = idConfigMap.delete(id);
+    return a || b;
+  }
 
   /**
    * Clear all event-config maps
    */
   public clear() {
-    this.eventMap.clear();
+    this.stringEvents.clear();
+    this.idMap.clear();
   }
 
   /**
@@ -174,48 +206,26 @@ export class EventBus {
    * @param evt
    * @param args
    */
-  public emit(evt: string, ...args: any) {
-    // paramter check
-    if (typeof evt !== 'string') {
-      throw new TypeError('evt must be a string');
-    }
-
-    // evt cannot include *.
-    if (evt.includes('*')) {
-      return;
-    }
-
-    const configs = this.getExactConfigs(evt);
-
+  public emit(evt: EventName, ...args: any): EmitResult[] | null {
+    const configs = this.getEvent(evt);
     if (!configs) {
-      return [];
+      return null;
     }
 
-    return configs.map((v) => {
-      const result = v.handler(...args);
-      v.capacity--;
-
-      return {
-        result,
+    const result: EmitResult[] = [];
+    configs.forEach((cfg, id) => {
+      result.push({
+        result: cfg.listener(...args),
+        id,
         evt,
-        expired: v.capacity <= 0,
-      };
+        rest: --cfg.capacity,
+      });
+      if (cfg.capacity <= 0) {
+        configs.delete(id);
+        this.idMap.delete(id);
+      }
     });
 
-    const configsArr: EventConfig[][] = this.getConfigs(evt);
-    for (const configs of configsArr) {
-      configs.forEach((c, v, s) => {
-        c.handler(...args);
-        c.capacity--;
-        if (c.capacity <= 0) {
-          s.delete(c);
-        }
-
-        // if this event has no handler after deletion, delete it.
-        if (s.length === 0) {
-          this.eventMap.delete(c.name);
-        }
-      });
-    }
+    return result;
   }
 }
