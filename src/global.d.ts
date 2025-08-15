@@ -26,16 +26,11 @@ interface EventConfig {
   capacity: number;
 }
 
-interface EmitResult {
+interface EmitResultValue {
   /**
    * Event name, it can be anything.
    */
   event: EventName;
-
-  /**
-   * Listener id, it is automatically increased when registering a listener.
-   */
-  id: number;
 
   /**
    *
@@ -47,4 +42,9 @@ interface EmitResult {
    * - if `0`, the listener will be expired after this call.
    */
   rest: number;
+}
+
+interface EmitResult {
+  ids: number[];
+  [key: number]: EmitResultValue;
 }

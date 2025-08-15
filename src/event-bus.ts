@@ -44,9 +44,14 @@ export class EventBus {
    * Using wildcard to match all config sets of an event.
    * @param event
    */
-  private getConfigs(event: EventName): EventConfig[][] {
+  private matchEvent(event: EventName): Map<number, EventConfig>[] {
+    if (typeof event !== 'string') {
+      const configs = this.events.get(event);
+      return configs ? [configs] : [];
+    }
+
     // todo 重写通配符
-    const matchedConfigs: EventConfig[][] = [];
+    const matched: Map<number, EventConfig>[] = [];
     for (const en of this.stringEvents.keys()) {
       // event is checked during the registration, here we only consider names end with '.*' or includes '.*.'
       if (en.includes('.*')) {
@@ -58,14 +63,14 @@ export class EventBus {
         if (match && match[0] === event) {
           // for of .keys() garuantees its existance
           const c = this.stringEvents.get(en)!;
-          matchedConfigs.push(c);
+          matched.push(c);
         }
       } else if (en === event) {
         const c = this.stringEvents.get(en)!;
-        matchedConfigs.push(c);
+        matched.push(c);
       }
     }
-    return matchedConfigs;
+    return matched;
   }
 
   private setEvent(event: EventName, configs: Map<Id, EventConfig>) {
@@ -84,16 +89,6 @@ export class EventBus {
     }
   }
 
-  private normalizeCapacity(capacity: number | typeof NotProvided): number {
-    if (capacity === NotProvided) {
-      return Infinity;
-    }
-    if (Number.isSafeInteger(capacity) && capacity > 0) {
-      return capacity;
-    }
-    throw new TypeError('capacity must be an integer or omitted');
-  }
-
   /**
    * Prevent events with '*' not come after '.'. e.g. '*event' and 'event*'
    * - only check string type event names
@@ -107,7 +102,6 @@ export class EventBus {
   }
 
   private register(event: EventName, listener: Fn, capacity: number): number {
-    capacity = this.normalizeCapacity(capacity);
     const configs = this.getEvent(event);
 
     const newId = this.id++;
@@ -252,25 +246,28 @@ export class EventBus {
   }
 
   /**
-   * Trigger an event by name. Not allow to use names includes '*'.
-   * @param event
-   * @param args
+   * Trigger an event by name
+   * @param event name of the event, it can be anything
+   * @param args args will be passed to the listener like `listener(...args)`
+   * @returns
+   * - `null` if no matched listener is found
+   * - `EmitResult` is an object takes 'id' as keys and 'result info' as values with `ids[]`(array) that records all included ids.
    */
-  public emit(event: EventName, ...args: any): EmitResult[] | null {
+  public emit(event: EventName, ...args: any): EmitResult | null {
     const configs = this.getEvent(event);
     if (!configs) {
       return null;
     }
 
-    // todo 这里也许更适合做成一个空对象，以id为键，结果配置为值
-    const result: EmitResult[] = [];
+    const ids: number[] = [];
+    const result: EmitResult = { ids };
     configs.forEach((cfg, id) => {
-      result.push({
+      ids.push(id);
+      result[id] = {
         result: cfg.listener(...args),
-        id,
         event,
         rest: --cfg.capacity,
-      });
+      };
       if (cfg.capacity <= 0) {
         configs.delete(id);
         this.idMap.delete(id);
