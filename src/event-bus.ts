@@ -133,7 +133,7 @@ export class EventBus {
   /**
    * Register an event. **Anything** can be an event identifier, including the `listener`
    * @param listener will be called if matched
-   * @returns an automically increased `id` of the registered listener
+   * @returns unique `id` of the registered identifier-listener entry
    * @throws `identifier` has '*'
    */
   public on(listener: Fn): number;
@@ -141,7 +141,7 @@ export class EventBus {
    * Register an event. **Anything** can be an event identifier
    * @param identifier name of the event
    * @param listener will be called if matched
-   * @returns an automically increased `id` of the registered listener
+   * @returns unique `id` of the registered identifier-listener entry
    * @throws `identifier` has '*'
    */
   public on(identifier: EventIdentifier, listener: Fn): number;
@@ -150,7 +150,7 @@ export class EventBus {
    * @param identifier name of the event
    * @param listener will be called if matched
    * @param capacity trigger limit
-   * @returns an automically increased `id` of the registered listener
+   * @returns unique `id` of the registered identifier-listener entry
    * @throws `identifier` has '*'
    */
   public on(identifier: EventIdentifier, listener: Fn, capacity: number): number;
@@ -176,7 +176,7 @@ export class EventBus {
   /**
    * Register an event that can only be triggered once. **Anything** can be an event identifier, including the `listener`
    * @param listener will be called if matched
-   * @returns an automically increased `id` of the registered listener
+   * @returns unique `id` of the registered identifier-listener entry
    * @throws if `identifier` has '*' not come after '.'.
    */
   public once(listener: Fn): number;
@@ -184,7 +184,7 @@ export class EventBus {
    * Register an event that can only be triggered once. **Anything** can be an event identifier
    * @param identifier name of the event
    * @param listener will be called if matched
-   * @returns an automically increased `id` of the registered listener
+   * @returns unique `id` of the registered identifier-listener entry
    * @throws if `identifier` has '*' not come after '.'.
    */
   public once(identifier: EventIdentifier, listener: Fn): number;

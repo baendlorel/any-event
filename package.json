@@ -9,8 +9,8 @@
 	"type": "module",
 	"exports": {
 		"import": "./dist/index.mjs",
-		"default": "./dist/index.mjs",
-		"types": "./dist/index.d.ts"
+		"types": "./dist/index.d.ts",
+		"default": "./dist/index.mjs"
 	},
 	"files": [
 		"dist"

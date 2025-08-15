@@ -53,7 +53,7 @@ describe('EventBus', () => {
     });
 
     it('should return emit results with correct structure', () => {
-      const listener = vi.fn().mockReturnValue('result');
+      const listener = vi.fn().mockReturnValue('aaa');
       const id = bus.on('test', listener);
 
       const result = bus.emit('test', 'data');
@@ -61,8 +61,8 @@ describe('EventBus', () => {
       expect(result).toEqual({
         ids: [id],
         [id]: {
-          result: 'result',
-          event: 'test',
+          result: 'aaa',
+          identifier: 'test',
           rest: Infinity - 1,
         },
       });

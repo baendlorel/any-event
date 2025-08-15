@@ -13,11 +13,11 @@ export function expect(o: unknown, msg: string): asserts o {
 
 // fixme 通配符（如 *、**）应该在注册（on/once）的时候的事件名里使用，用于订阅一类事件。
 /**
- * When registering
- * 1. name must not contain `*`
- * 2. name must not start or end with `.`
+ * When emitting
+ * - allowed: user.*, order.*
+ * - not allowed: *user, user*, us*er, evt.***
  */
-export function expectEventName(name: unknown) {
+export function expectEmitEventName(name: unknown) {
   if (typeof name !== 'string') {
     return;
   }
@@ -32,11 +32,11 @@ export function expectEventName(name: unknown) {
 }
 
 /**
- * When emitting
- * - allowed: user.*, order.*
- * - not allowed: *user, user*, us*er, evt.***
+ * When registering
+ * 1. name must not contain `*`
+ * 2. name must not start or end with `.`
  */
-export function expectEmitEventName(raw: EventIdentifier) {
+export function expectEventName(raw: EventIdentifier) {
   if (typeof raw !== 'string') {
     return;
   }
