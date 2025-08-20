@@ -97,8 +97,10 @@ export class EventBus {
     }
 
     // Check wildcard patterns
-    for (const [pattern, configs] of this._stringEvents) {
-      if (pattern === identifier) continue; // already handled above
+    this._stringEvents.forEach((configs, pattern) => {
+      if (pattern === identifier) {
+        return; // already handled above
+      }
 
       if (pattern.includes('*')) {
         let isMatch = false;
@@ -125,7 +127,7 @@ export class EventBus {
           matched.push(configs);
         }
       }
-    }
+    });
 
     return matched;
   }

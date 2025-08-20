@@ -6,7 +6,7 @@ import { EventBus } from './event-bus.js';
  *
  * Use `eventBus.on`, `eventBus.off`, `eventBus.emit`, etc.
  * - empowered by npm package `singleton-pattern`
- * @see https://www.npmjs.com/package/singleton-patternc  (Yes, tbhis is my work too (づ｡◕‿‿◕｡)づ)
+ * @see https://www.npmjs.com/package/singleton-pattern  (Yes, this is my work too (づ｡◕‿‿◕｡)づ)
  *
  * __PKG_INFO__
  */

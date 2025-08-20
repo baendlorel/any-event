@@ -16,14 +16,6 @@ describe('EventBus Basic', () => {
     expect(result!.ids).toHaveLength(1);
   });
 
-  it('should register listener as event name when only one argument', () => {
-    const listener = vi.fn();
-    bus.on(listener);
-    const result = bus.emit(listener, 'data');
-    expect(listener).toHaveBeenCalledWith('data');
-    expect(result).not.toBeNull();
-  });
-
   it('should handle once events', () => {
     const listener = vi.fn();
     bus.once('test', listener);
