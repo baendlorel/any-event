@@ -5,7 +5,8 @@
 		"name": "KasukabeTsumugi",
 		"email": "futami16237@gmail.com"
 	},
-	"description": "Anything can be the event identifier. Tis a simple EventBus module for js/ts projects, support wildcards",
+	"description": "Anything can be the event identifier. Tis a simple EventBus module for js/ts projects, support wildcards. Listening can get id, trigger can get id-value(listener's return value) key-value pair.",
+	"description_zh": "通配符事件总线，任何类型的值都可以作为事件标识符。监听可以获得id，触发可以获得id-监听函数返回值的键值对",
 	"type": "module",
 	"exports": {
 		"import": "./dist/index.mjs",
